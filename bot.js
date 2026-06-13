@@ -1,45 +1,37 @@
 // ============================================================
-//  El Ashry Pro - Telegram Bot
-//  بوت تليجرام كامل للتحكم في نظام إدارة الحالات
-//  برمجة وتطوير بكل ❤️ ينبض - المهندس محمد حماد
-// ============================================================
-//
-//  الإعداد:
-//  1. أنشئ بوت من @BotFather واحصل على التوكن
-//  2. أنشئ قناة خاصة على تليجرام
-//  3. اضف البوت كمشرف في القناة
-//  4. اضبط المتغيرات بالأسفل
-//  5. شغل: bun bot.js أو node bot.js
-//
+//  El Ashry Pro - Telegram Bot v4.0
+//  نظام إدارة الحالات الطبية - بوت تليجرام المتكامل
+//  برمجة وتطوير بكل ❤️ حب - المهندس محمد حماد
 // ============================================================
 
-const BOT_TOKEN = process.env.BOT_TOKEN || "8932213518:AAFdrQGmLPCAtSbZGV069yVtEVwsXZZd31o";
-const CHANNEL_ID = process.env.CHANNEL_ID || "-1004373481196";
+const BOT_TOKEN    = process.env.BOT_TOKEN    || "8932213518:AAFdrQGmLPCAtSbZGV069yVtEVwsXZZd31o";
+const CHANNEL_ID   = process.env.CHANNEL_ID   || "-1004373481196";
+const BOT_PASSWORD = process.env.BOT_PASSWORD || "521988";
 const BOT_USERNAME = "@Ashryworkbot";
-const BOT_PASSWORD = "521988";
+
 const FIREBASE_CONFIG = {
-  apiKey: "AIzaSyCXu2rJGT81e9BBkJXzzVyEyXWaYcrK2NM",
-  authDomain: "el-ashry.firebaseapp.com",
-  databaseURL: "https://el-ashry-default-rtdb.firebaseio.com",
-  projectId: "el-ashry",
-  storageBucket: "el-ashry.firebasestorage.app",
+  apiKey:            "AIzaSyCXu2rJGT81e9BBkJXzzVyEyXWaYcrK2NM",
+  authDomain:        "el-ashry.firebaseapp.com",
+  databaseURL:       "https://el-ashry-default-rtdb.firebaseio.com",
+  projectId:         "el-ashry",
+  storageBucket:     "el-ashry.firebasestorage.app",
   messagingSenderId: "169155515034",
-  appId: "1:169155515034:web:d74c9f027efd216a228523"
+  appId:             "1:169155515034:web:d74c9f027efd216a228523"
 };
 
 // ===== Firebase Init =====
-const { initializeApp } = require("firebase/app");
-const { getDatabase, ref, set, get, update, remove, push, onValue } = require("firebase/database");
+const { initializeApp }                                       = require("firebase/app");
+const { getDatabase, ref, set, get, update, remove, push }    = require("firebase/database");
 const firebaseApp = initializeApp(FIREBASE_CONFIG);
-const db = getDatabase(firebaseApp);
+const db          = getDatabase(firebaseApp);
 
 // ===== Constants =====
 const STATUS_LABELS = {
-  executed: "✅ تم التنفيذ",
-  under_review: "⏳ تحت المراجعة",
+  executed:        "✅ تم التنفيذ",
+  under_review:    "⏳ تحت المراجعة",
   under_procedure: "🔄 تحت الإجراء",
-  responded: "💬 تم الرد",
-  rejected: "❌ مرفوض"
+  responded:       "💬 تم الرد",
+  rejected:        "❌ مرفوض"
 };
 
 const SERVICE_TYPES = [
@@ -52,21 +44,60 @@ const SERVICE_TYPES = [
   "خدمة أخرى"
 ];
 
-// ===== State =====
-const authUsers = new Set();
-const userSessions = new Map(); // chatId -> session state
+const MAX_DOCS = 15;
 
-// ===== Helper: Telegram API =====
+// ===== Auth State =====
+const authUsers    = new Set();
+const userSessions = new Map();
+
+async function loadAuthUsers() {
+  try {
+    const snap = await get(ref(db, "auth_users"));
+    if (snap.val()) {
+      for (const id of Object.values(snap.val())) authUsers.add(Number(id));
+    }
+  } catch(e) { console.error("loadAuthUsers:", e); }
+}
+
+async function persistAuthAdd(chatId) {
+  authUsers.add(chatId);
+  await set(ref(db, `auth_users/${chatId}`), chatId);
+}
+
+async function persistAuthRemove(chatId) {
+  authUsers.delete(chatId);
+  await remove(ref(db, `auth_users/${chatId}`));
+}
+
+async function loadSessions() {
+  try {
+    const snap = await get(ref(db, "sessions"));
+    if (snap.val()) {
+      for (const [id, session] of Object.entries(snap.val())) {
+        userSessions.set(Number(id), session);
+      }
+    }
+  } catch(e) { console.error("loadSessions:", e); }
+}
+
+async function persistSession(chatId, session) {
+  userSessions.set(chatId, session);
+  await set(ref(db, `sessions/${chatId}`), session);
+}
+
+async function deleteSession(chatId) {
+  userSessions.delete(chatId);
+  await remove(ref(db, `sessions/${chatId}`));
+}
+
+// ===== Telegram API =====
 async function tg(method, data = {}) {
   const url = `https://api.telegram.org/bot${BOT_TOKEN}/${method}`;
   const hasFile = data.document || data.photo;
-  
+
   if (hasFile) {
-    // Use FormData for file uploads
     const formData = new FormData();
-    for (const [key, val] of Object.entries(data)) {
-      formData.append(key, val);
-    }
+    for (const [k, v] of Object.entries(data)) formData.append(k, v);
     const res = await fetch(url, { method: "POST", body: formData });
     return res.json();
   }
@@ -80,41 +111,87 @@ async function tg(method, data = {}) {
 }
 
 async function sendMessage(chatId, text, extra = {}) {
-  return tg("sendMessage", {
-    chat_id: chatId,
-    text,
-    parse_mode: "HTML",
-    ...extra
-  });
+  return tg("sendMessage", { chat_id: chatId, text, parse_mode: "HTML", ...extra });
 }
 
 async function sendDocument(chatId, fileId, caption = "") {
-  return tg("sendDocument", {
-    chat_id: chatId,
-    document: fileId,
-    caption
-  });
+  return tg("sendDocument", { chat_id: chatId, document: fileId, caption, parse_mode: "HTML" });
 }
 
-// ===== Helper: Firebase =====
+async function editMessage(chatId, messageId, text, extra = {}) {
+  return tg("editMessageText", { chat_id: chatId, message_id: messageId, text, parse_mode: "HTML", ...extra });
+}
+
+// ===== Arabic Normalizer (Smart Fuzzy Search) =====
+function normalizeArabic(text) {
+  if (!text) return "";
+  return text
+    .replace(/[أإآ]/g, "ا")
+    .replace(/ؤ/g, "و")
+    .replace(/ئ/g, "ي")
+    .replace(/ى/g, "ي")
+    .replace(/ة/g, "ه")
+    .replace(/[\u064B-\u065F]/g, "") // Remove diacritics (tashkeel)
+    .replace(/\s+/g, " ")
+    .trim()
+    .toLowerCase();
+}
+
+function arabicSearch(text, query) {
+  return normalizeArabic(text).includes(normalizeArabic(query));
+}
+
+// ===== Phone Formatter (WhatsApp) =====
+function formatPhoneForWhatsApp(phone) {
+  if (!phone) return null;
+  let p = phone.replace(/[\s\-().+]/g, "");
+  // Egyptian numbers: start with 0 → add country code 20
+  if (p.startsWith("0")) p = "20" + p.substring(1);
+  // Already has 20 prefix
+  if (p.startsWith("20") && p.length === 12) return p;
+  // Other cases: just return cleaned
+  return p;
+}
+
+function whatsAppLink(phone) {
+  const formatted = formatPhoneForWhatsApp(phone);
+  if (!formatted) return null;
+  return `https://wa.me/${formatted}`;
+}
+
+// ===== Firebase Helpers =====
 async function getAllCases() {
-  const snapshot = await get(ref(db, "cases"));
-  return snapshot.val() ? Object.values(snapshot.val()) : [];
+  const snap = await get(ref(db, "cases"));
+  return snap.val() ? Object.values(snap.val()) : [];
 }
 
 async function getCaseById(id) {
-  const snapshot = await get(ref(db, `cases/${id}`));
-  return snapshot.val();
+  const snap = await get(ref(db, `cases/${id}`));
+  return snap.val();
+}
+
+// Sequential case number using a dedicated counter in Firebase
+async function getNextCaseNumber() {
+  const counterRef = ref(db, "meta/caseCounter");
+  const snap = await get(counterRef);
+  const current = snap.val() || 0;
+  const next = current + 1;
+  await set(counterRef, next);
+  return next;
 }
 
 async function createCase(data) {
   const newRef = push(ref(db, "cases"));
-  const id = newRef.key;
-  const now = Date.now();
-  const d = new Date();
-  const caseNumber = `EA-${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, "0")}-${String((await getAllCases()).length + 1).padStart(4, "0")}`;
-  
-  const caseData = { id, caseNumber, ...data, createdAt: now, updatedAt: now };
+  const id     = newRef.key;
+  const now    = Date.now();
+  const num    = await getNextCaseNumber();
+  const caseData = {
+    id,
+    caseNumber: String(num),
+    ...data,
+    createdAt: now,
+    updatedAt: now
+  };
   await set(newRef, caseData);
   return caseData;
 }
@@ -124,7 +201,6 @@ async function updateCase(id, data) {
 }
 
 async function deleteCase(id) {
-  // Delete associated files from Telegram channel
   const c = await getCaseById(id);
   if (c && c.documents) {
     for (const doc of c.documents) {
@@ -136,78 +212,108 @@ async function deleteCase(id) {
   await remove(ref(db, `cases/${id}`));
 }
 
+// Smart Arabic search
 async function searchCases(query) {
   const all = await getAllCases();
-  const q = query.toLowerCase();
   return all.filter(c =>
-    c.personName.toLowerCase().includes(q) ||
-    c.caseNumber.toLowerCase().includes(q) ||
-    (c.nationalId || "").includes(q) ||
-    (c.personPhone || "").includes(q)
+    arabicSearch(c.personName, query) ||
+    (c.caseNumber || "").includes(query) ||
+    (c.nationalId  || "").includes(query) ||
+    (c.personPhone || "").includes(query) ||
+    arabicSearch(c.country      || "", query) ||
+    arabicSearch(c.hospitalName || "", query)
   );
 }
 
-// ===== Upload file to channel =====
-async function uploadToChannel(fileId, fileName) {
-  // Forward/copy the file to the private channel
-  const result = await tg("copyMessage", {
-    chat_id: CHANNEL_ID,
-    from_chat_id: CHANNEL_ID, // We'll use sendDocument instead
-  });
-  return result;
-}
-
-async function saveFileToChannel(chatId, fileId, fileName) {
-  // Send the file to the channel and get the message_id
+async function saveFileToChannel(fileId, fileName) {
   const result = await tg("sendDocument", {
     chat_id: CHANNEL_ID,
     document: fileId,
     caption: `📁 ${fileName}`
   });
-  
   if (result.ok) {
     return {
-      fileId: result.result.document.file_id,
+      fileId:    result.result.document.file_id,
       messageId: result.result.message_id,
-      fileName: fileName
+      fileName
     };
   }
   return null;
 }
 
 // ===== Format Case =====
-function formatCase(c) {
-  let text = `<b>📋 طلب #${c.caseNumber}</b>\n\n`;
+function formatDate(ts) {
+  if (!ts) return "—";
+  return new Date(ts).toLocaleDateString("ar-EG", {
+    year: "numeric", month: "long", day: "numeric"
+  });
+}
+
+function formatCase(c, includeDocLinks = false) {
+  let text = `<b>📋 طلب رقم ${c.caseNumber}</b>\n\n`;
   text += `👤 <b>الاسم:</b> ${c.personName}\n`;
-  if (c.personPhone) text += `📱 <b>الهاتف:</b> <code>${c.personPhone}</code>`;
-  if (c.personPhone) text += ` | <a href="https://wa.me/2${c.personPhone.replace(/^0/, '')}">واتساب</a>\n`;
-  if (c.nationalId) text += `🆔 <b>الرقم القومي:</b> <code>${c.nationalId}</code>\n`;
-  text += `🏥 <b>الخدمة:</b> ${c.serviceType}\n`;
+
+  if (c.personPhone) {
+    const waLink = whatsAppLink(c.personPhone);
+    text += `📱 <b>الهاتف:</b> <code>${c.personPhone}</code>`;
+    if (waLink) text += ` | <a href="${waLink}">واتساب</a>`;
+    text += "\n";
+  }
+
+  if (c.nationalId)   text += `🆔 <b>الرقم القومي:</b> <code>${c.nationalId}</code>\n`;
+  if (c.country)      text += `🌍 <b>الدولة:</b> ${c.country}\n`;
+  if (c.hospitalName) text += `🏥 <b>المستشفى:</b> ${c.hospitalName}\n`;
+  text += `🩺 <b>الخدمة:</b> ${c.serviceType}\n`;
   text += `📌 <b>الحالة:</b> ${STATUS_LABELS[c.status] || c.status}\n`;
-  if (c.description) text += `📝 <b>الوصف:</b> ${c.description}\n`;
-  if (c.status === "responded" && c.response) text += `💬 <b>الرد:</b> ${c.response}\n`;
-  if (c.status === "rejected" && c.rejectionReason) text += `❌ <b>سبب الرفض:</b> ${c.rejectionReason}\n`;
-  if (c.documents && c.documents.length > 0) text += `📎 <b>المستندات:</b> ${c.documents.length} ملف\n`;
-  
+
+  if (c.submissionDate) text += `📅 <b>تاريخ تقديم الطلب:</b> ${c.submissionDate}\n`;
+  if (c.responseDate)   text += `📆 <b>تاريخ الرد:</b> ${c.responseDate}\n`;
+
+  if (c.description)                                  text += `📝 <b>الوصف:</b> ${c.description}\n`;
+  if (c.status === "responded"  && c.response)         text += `💬 <b>الرد:</b> ${c.response}\n`;
+  if (c.status === "rejected"   && c.rejectionReason)  text += `❌ <b>سبب الرفض:</b> ${c.rejectionReason}\n`;
+
+  if (c.documents && c.documents.length > 0) {
+    text += `📎 <b>المستندات:</b> ${c.documents.length} ملف\n`;
+  }
+
   const d = new Date(c.createdAt);
-  text += `\n📅 ${d.toLocaleDateString("ar-EG", { year: "numeric", month: "long", day: "numeric", hour: "2-digit", minute: "2-digit" })}`;
-  
+  text += `\n🕐 ${d.toLocaleDateString("ar-EG", { year: "numeric", month: "long", day: "numeric", hour: "2-digit", minute: "2-digit" })}`;
+
   return text;
 }
 
-// ===== Inline Keyboards =====
+// ===== WhatsApp Share Message =====
+function buildWhatsAppMessage(c) {
+  let msg = `📋 *طلب رقم ${c.caseNumber}*\n\n`;
+  msg += `👤 الاسم: ${c.personName}\n`;
+  if (c.personPhone) msg += `📱 الهاتف: ${c.personPhone}\n`;
+  if (c.country)      msg += `🌍 الدولة: ${c.country}\n`;
+  if (c.hospitalName) msg += `🏥 المستشفى: ${c.hospitalName}\n`;
+  msg += `🩺 الخدمة: ${c.serviceType}\n`;
+  msg += `📌 الحالة: ${(STATUS_LABELS[c.status] || c.status).replace(/[✅⏳🔄💬❌]/g, "").trim()}\n`;
+  if (c.submissionDate) msg += `📅 تاريخ الطلب: ${c.submissionDate}\n`;
+  if (c.responseDate)   msg += `📆 تاريخ الرد: ${c.responseDate}\n`;
+  if (c.description)    msg += `📝 الوصف: ${c.description}\n`;
+  return msg;
+}
+
+// ===== Keyboards =====
 function mainMenuKeyboard() {
   return {
     inline_keyboard: [
       [
-        { text: "📋 عرض الطلبات", callback_data: "list_cases" },
-        { text: "➕ طلب جديد", callback_data: "add_case" }
+        { text: "📋 عرض الطلبات",   callback_data: "list_cases"    },
+        { text: "➕ طلب جديد",       callback_data: "add_case"      }
       ],
       [
-        { text: "🔍 بحث", callback_data: "search_start" },
-        { text: "📊 إحصائيات", callback_data: "stats" }
+        { text: "🔍 بحث",            callback_data: "search_start"  },
+        { text: "📊 إحصائيات",       callback_data: "stats"         }
       ],
-      [{ text: "❓ المساعدة", callback_data: "help" }]
+      [
+        { text: "📂 رفع مستندات",    callback_data: "docs_upload"   },
+        { text: "❓ المساعدة",        callback_data: "help"          }
+      ]
     ]
   };
 }
@@ -216,74 +322,134 @@ function statusKeyboard(caseId) {
   return {
     inline_keyboard: [
       [
-        { text: "✅ تم التنفيذ", callback_data: `status_${caseId}_executed` },
-        { text: "⏳ تحت المراجعة", callback_data: `status_${caseId}_under_review` }
+        { text: "✅ تم التنفيذ",    callback_data: `status_${caseId}_executed`        },
+        { text: "⏳ تحت المراجعة", callback_data: `status_${caseId}_under_review`    }
       ],
       [
-        { text: "🔄 تحت الإجراء", callback_data: `status_${caseId}_under_procedure` },
-        { text: "💬 تم الرد", callback_data: `status_${caseId}_responded` }
+        { text: "🔄 تحت الإجراء",  callback_data: `status_${caseId}_under_procedure` },
+        { text: "💬 تم الرد",      callback_data: `status_${caseId}_responded`       }
       ],
       [
-        { text: "❌ مرفوض", callback_data: `status_${caseId}_rejected` }
+        { text: "❌ مرفوض",        callback_data: `status_${caseId}_rejected`        }
       ],
       [
-        { text: "🗑 حذف الطلب", callback_data: `delete_${caseId}` },
-        { text: "🔙 رجوع", callback_data: "main_menu" }
+        { text: "🗑 حذف الطلب",    callback_data: `delete_${caseId}` },
+        { text: "🔙 رجوع",         callback_data: "main_menu"        }
       ]
     ]
   };
 }
 
-function casesListKeyboard(cases) {
-  const buttons = cases.slice(0, 10).map(c => [{
-    text: `#${c.caseNumber} - ${c.personName} (${STATUS_LABELS[c.status]?.replace(/[✅⏳🔄💬❌]/g, "").trim() || c.status})`,
+function casesListKeyboard(cases, page = 0) {
+  const pageSize = 8;
+  const start    = page * pageSize;
+  const slice    = cases.slice(start, start + pageSize);
+
+  const buttons = slice.map(c => [{
+    text: `#${c.caseNumber} - ${c.personName} (${(STATUS_LABELS[c.status] || "").replace(/[✅⏳🔄💬❌]/g, "").trim()})`,
     callback_data: `view_${c.id}`
   }]);
-  
+
+  const nav = [];
+  if (page > 0)                              nav.push({ text: "◀️ السابق", callback_data: `page_${page-1}` });
+  if (start + pageSize < cases.length)       nav.push({ text: "التالي ▶️", callback_data: `page_${page+1}` });
+  if (nav.length) buttons.push(nav);
+
   buttons.push([{ text: "🔙 القائمة الرئيسية", callback_data: "main_menu" }]);
   return { inline_keyboard: buttons };
 }
 
 function confirmDeleteKeyboard(caseId) {
   return {
-    inline_keyboard: [
-      [
-        { text: "✅ نعم، احذف", callback_data: `confirm_delete_${caseId}` },
-        { text: "❌ إلغاء", callback_data: `view_${caseId}` }
-      ]
-    ]
+    inline_keyboard: [[
+      { text: "✅ نعم، احذف", callback_data: `confirm_delete_${caseId}` },
+      { text: "❌ إلغاء",     callback_data: `view_${caseId}`           }
+    ]]
   };
+}
+
+// ===== Persistent Reply Keyboard (الأزرار الثابتة في الأسفل) =====
+function mainReplyKeyboard() {
+  return {
+    keyboard: [
+      [
+        { text: "📋 الطلبات" },
+        { text: "➕ طلب جديد" },
+        { text: "🔍 بحث" }
+      ],
+      [
+        { text: "📂 مستندات" },
+        { text: "📊 إحصائيات" },
+        { text: "❓ مساعدة" }
+      ]
+    ],
+    resize_keyboard:   true,   // تصغير الكيبورد تلقائياً
+    persistent:        true,   // يبقى ثابتاً في الأسفل دائماً
+    input_field_placeholder: "اكتب أمراً أو اختر من القائمة..."
+  };
+}
+
+// ===== Set Bot Menu Button =====
+async function setBotMenuButton() {
+  try {
+    // Set slash commands list
+    await tg("setMyCommands", {
+      commands: [
+        { command: "menu",      description: "📋 القائمة الرئيسية" },
+        { command: "add",       description: "➕ إضافة طلب جديد" },
+        { command: "search",    description: "🔍 بحث عن طلب" },
+        { command: "documents", description: "📂 رفع مستندات" },
+        { command: "cases",     description: "📋 عرض كل الطلبات" },
+        { command: "stats",     description: "📊 الإحصائيات" },
+        { command: "help",      description: "❓ المساعدة" },
+        { command: "logout",    description: "🔒 تسجيل الخروج" }
+      ]
+    });
+
+    // Set menu button type to commands
+    await tg("setChatMenuButton", {
+      menu_button: { type: "commands" }
+    });
+
+    console.log("✅ تم ضبط أزرار القائمة الدائمة والأوامر");
+  } catch(e) {
+    console.error("setBotMenuButton:", e);
+  }
+}
+
+// ===== Send With Persistent Keyboard =====
+async function sendWithMenu(chatId, text, extra = {}) {
+  return sendMessage(chatId, text, {
+    reply_markup: mainReplyKeyboard(),
+    ...extra
+  });
 }
 
 // ===== Handle Update =====
 async function handleUpdate(update) {
   try {
-    if (update.callback_query) {
-      await handleCallback(update.callback_query);
-      return;
-    }
+    if (update.callback_query) { await handleCallback(update.callback_query); return; }
 
-    const msg = update.message;
+    const msg    = update.message;
     if (!msg) return;
 
     const chatId = msg.chat.id;
-    const text = msg.text || "";
+    const text   = msg.text || "";
 
-    // Check if user is authenticated
+    // ---- Auth ----
     if (!authUsers.has(chatId)) {
       if (text.trim() === BOT_PASSWORD || text.startsWith("/start " + BOT_PASSWORD)) {
-        authUsers.add(chatId);
-        await sendMessage(chatId,
+        await persistAuthAdd(chatId);\n        await sendMessage(chatId,
           `✅ <b>تم تسجيل الدخول بنجاح!</b>\n\n` +
           `مرحباً بك في نظام <b>El Ashry Pro</b> 🏥\n` +
           `مكتب الحاج أحمد الحديدي - عضو مجلس النواب\n\n` +
-          `يمكنك التحكم الكامل في جميع الحالات من هنا`,
-          { reply_markup: mainMenuKeyboard() }
+          `يمكنك التحكم الكامل في جميع الحالات من هنا\n\n` +
+          `<i>📌 ستظهر لك قائمة الأزرار الثابتة في الأسفل تلقائياً</i>`,
+          { reply_markup: mainReplyKeyboard() }
         );
       } else if (text.startsWith("/start")) {
         await sendMessage(chatId,
-          `🏥 <b>El Ashry Pro - بوت إدارة الحالات</b>\n\n` +
-          `للدخول، أرسل كلمة المرور:`
+          `🏥 <b>El Ashry Pro - بوت إدارة الحالات</b>\n\nللدخول، أرسل كلمة المرور:`
         );
       } else {
         await sendMessage(chatId, "🔒 أرسل كلمة المرور للدخول:");
@@ -291,71 +457,47 @@ async function handleUpdate(update) {
       return;
     }
 
-    // Handle session states
+    // ---- Session ----
     const session = userSessions.get(chatId);
-    if (session) {
-      await handleSession(chatId, msg, session);
-      return;
-    }
+    if (session) { await handleSession(chatId, msg, session); return; }
 
-    // Handle file uploads (when not in a session, just save to channel)
-    if (msg.document || msg.photo) {
-      await handleFileUpload(chatId, msg);
-      return;
-    }
+    // ---- Standalone File Upload ----
+    if (msg.document || msg.photo) { await handleFileUpload(chatId, msg); return; }
 
-    // Commands
+    // ---- Reply Keyboard Buttons (الأزرار الثابتة) ----
+    const replyMap = {
+      "📋 الطلبات":   () => showCasesList(chatId),
+      "➕ طلب جديد":  () => startAddCase(chatId),
+      "🔍 بحث":       () => startSearchFlow(chatId),
+      "📂 مستندات":   () => startDocsUpload(chatId),
+      "📊 إحصائيات": () => showStats(chatId),
+      "❓ مساعدة":    () => showHelp(chatId),
+    };
+    if (replyMap[text]) { await replyMap[text](); return; }
+
+    // ---- Commands ----
     if (text.startsWith("/start") || text.startsWith("/menu")) {
-      await sendMessage(chatId, "📋 <b>القائمة الرئيسية</b>", { reply_markup: mainMenuKeyboard() });
+      await sendMessage(chatId, "📋 <b>القائمة الرئيسية</b>", { reply_markup: mainReplyKeyboard() });
       return;
     }
-
-    if (text.startsWith("/help") || text === "❓ المساعدة") {
-      await sendMessage(chatId,
-        `📋 <b>أوامر البوت:</b>\n\n` +
-        `/menu - القائمة الرئيسية\n` +
-        `/cases - عرض جميع الطلبات\n` +
-        `/add - إضافة طلب جديد\n` +
-        `/search اسم - البحث عن طلب\n` +
-        `/stats - الإحصائيات\n` +
-        `/logout - تسجيل الخروج\n\n` +
-        `📎 <b>رفع مستندات:</b>\n` +
-        `أرسل أي ملف مباشرة وسيتم حفظه في القناة\n\n` +
-        `💡 <b>إضافة مستند لطلب:</b>\n` +
-        `/attach رقم_الحالة - ثم أرسل الملف`
-      );
-      return;
-    }
-
+    if (text.startsWith("/help"))   { await showHelp(chatId); return; }
     if (text.startsWith("/logout")) {
-      authUsers.delete(chatId);
-      userSessions.delete(chatId);
-      await sendMessage(chatId, "👋 تم تسجيل الخروج");
+      await persistAuthRemove(chatId);
+      await deleteSession(chatId);
+      await tg("sendMessage", {
+        chat_id: chatId, text: "👋 تم تسجيل الخروج بنجاح",
+        reply_markup: { remove_keyboard: true }
+      });
       return;
     }
-
-    if (text.startsWith("/cases")) {
-      await showCasesList(chatId);
-      return;
-    }
-
-    if (text.startsWith("/add")) {
-      await startAddCase(chatId);
-      return;
-    }
+    if (text.startsWith("/cases"))   { await showCasesList(chatId); return; }
+    if (text.startsWith("/add"))     { await startAddCase(chatId); return; }
+    if (text.startsWith("/stats"))   { await showStats(chatId); return; }
 
     if (text.startsWith("/search")) {
       const query = text.replace("/search", "").trim();
-      if (!query) {
-        await sendMessage(chatId, "🔍 أرسل كلمة البحث:\nمثال: <code>/search أحمد</code>");
-        return;
-      }
+      if (!query) { await sendMessage(chatId, "🔍 مثال: <code>/search أحمد</code>"); return; }
       await doSearch(chatId, query);
-      return;
-    }
-
-    if (text.startsWith("/stats")) {
-      await showStats(chatId);
       return;
     }
 
@@ -365,18 +507,36 @@ async function handleUpdate(update) {
       return;
     }
 
-    // Default
-    await sendMessage(chatId, "🤔 أمر غير معروف. اضغط /menu للقائمة الرئيسية");
+    if (text.startsWith("/documents") || text.startsWith("/docs")) {
+      const arg = text.replace(/\/(documents|docs)/, "").trim();
+      if (arg) {
+        const allCases = await getAllCases();
+        const c = allCases.find(x =>
+          x.caseNumber === arg ||
+          x.id === arg ||
+          arabicSearch(x.personName, arg)
+        );
+        if (c) { await showCaseDocuments(chatId, c.id); return; }
+        await sendMessage(chatId, `❌ لم يتم العثور على الحالة: ${arg}`);
+      } else {
+        await startDocsUpload(chatId);
+      }
+      return;
+    }
+
+    await sendMessage(chatId, "🤔 أمر غير معروف. اختر من القائمة أدناه 👇", {
+      reply_markup: mainReplyKeyboard()
+    });
 
   } catch (err) {
-    console.error("Handle update error:", err);
+    console.error("handleUpdate error:", err);
   }
 }
 
-// ===== Handle Callback Query =====
+// ===== Handle Callback =====
 async function handleCallback(cb) {
   const chatId = cb.message.chat.id;
-  const data = cb.data;
+  const data   = cb.data;
 
   if (!authUsers.has(chatId)) {
     await tg("answerCallbackQuery", { callback_query_id: cb.id, text: "يجب تسجيل الدخول أولاً" });
@@ -387,49 +547,41 @@ async function handleCallback(cb) {
 
   try {
     if (data === "main_menu") {
-      await sendMessage(chatId, "📋 <b>القائمة الرئيسية</b>", { reply_markup: mainMenuKeyboard() });
+      await sendMessage(chatId, "📋 <b>القائمة الرئيسية</b>", { reply_markup: mainReplyKeyboard() });
     }
-    else if (data === "list_cases") {
-      await showCasesList(chatId);
-    }
-    else if (data === "add_case") {
-      await startAddCase(chatId);
-    }
+    else if (data === "list_cases")   { await showCasesList(chatId); }
+    else if (data === "add_case")     { await startAddCase(chatId); }
+    else if (data === "stats")        { await showStats(chatId); }
+    else if (data === "help")         { await showHelp(chatId); }
+    else if (data === "docs_upload")  { await startDocsUpload(chatId); }
+
     else if (data === "search_start") {
-      userSessions.set(chatId, { state: "search_awaiting_query" });
-      await sendMessage(chatId, "🔍 أرسل اسم الشخص أو رقم الحالة للبحث:");
+      await persistSession(chatId, { state: "search_awaiting_query" });
+      await sendMessage(chatId, "🔍 أرسل اسم الشخص أو رقم الطلب للبحث:\n\n<i>البحث يدعم اللغة العربية بصورة ذكية ويتجاهل الفرق في الهمزات والتشكيل</i>");
     }
-    else if (data === "stats") {
-      await showStats(chatId);
-    }
-    else if (data === "help") {
-      await sendMessage(chatId,
-        `📋 <b>أوامر البوت:</b>\n\n` +
-        `/menu - القائمة الرئيسية\n` +
-        `/cases - عرض جميع الطلبات\n` +
-        `/add - إضافة طلب جديد\n` +
-        `/search اسم - البحث\n` +
-        `/stats - الإحصائيات\n\n` +
-        `📎 أرسل أي ملف مباشرة وسيتم حفظه\n` +
-        `💡 /attach رقم_الحالة - لإضافة مستند لطلب`
-      );
+
+    else if (data.startsWith("page_")) {
+      const page  = parseInt(data.replace("page_", ""));
+      const cases = (await getAllCases()).sort((a,b) => b.createdAt - a.createdAt);
+      await sendMessage(chatId, `📋 <b>الطلبات</b> (${cases.length})`, { reply_markup: casesListKeyboard(cases, page) });
     }
     else if (data.startsWith("view_")) {
       const id = data.replace("view_", "");
       await showCaseDetail(chatId, id);
     }
     else if (data.startsWith("status_")) {
-      const parts = data.replace("status_", "").split("_");
-      const caseId = parts[0];
-      const newStatus = parts[1];
+      const withoutPrefix  = data.replace("status_", "");
+      const lastUnderscore = withoutPrefix.lastIndexOf("_");
+      const caseId    = withoutPrefix.substring(0, lastUnderscore);
+      const newStatus = withoutPrefix.substring(lastUnderscore + 1);
       await updateCase(caseId, { status: newStatus });
       const c = await getCaseById(caseId);
-      await sendMessage(chatId, `✅ تم تحديث حالة الطلب #${c.caseNumber} إلى: ${STATUS_LABELS[newStatus]}`);
+      await sendMessage(chatId, `✅ تم تحديث الطلب #${c.caseNumber} إلى: ${STATUS_LABELS[newStatus]}`);
       await showCaseDetail(chatId, caseId);
     }
     else if (data.startsWith("delete_")) {
       const id = data.replace("delete_", "");
-      const c = await getCaseById(id);
+      const c  = await getCaseById(id);
       await sendMessage(chatId,
         `⚠️ <b>تأكيد الحذف</b>\n\nهل أنت متأكد من حذف الطلب #${c.caseNumber} - ${c.personName}؟`,
         { reply_markup: confirmDeleteKeyboard(id) }
@@ -437,26 +589,67 @@ async function handleCallback(cb) {
     }
     else if (data.startsWith("confirm_delete_")) {
       const id = data.replace("confirm_delete_", "");
-      const c = await getCaseById(id);
+      const c  = await getCaseById(id);
       await deleteCase(id);
-      await sendMessage(chatId, `🗑 تم حذف الطلب #${c?.caseNumber || id} بنجاح`, { reply_markup: mainMenuKeyboard() });
+      await sendMessage(chatId,
+        `🗑 تم حذف الطلب #${c?.caseNumber || id} بنجاح`,
+        { reply_markup: mainReplyKeyboard() }
+      );
     }
     else if (data.startsWith("respond_")) {
       const id = data.replace("respond_", "");
-      userSessions.set(chatId, { state: "respond_awaiting", caseId: id });
+      await persistSession(chatId, { state: "respond_awaiting", caseId: id });
       await sendMessage(chatId, "💬 اكتب الرد:");
     }
     else if (data.startsWith("reject_")) {
       const id = data.replace("reject_", "");
-      userSessions.set(chatId, { state: "reject_awaiting", caseId: id });
+      await persistSession(chatId, { state: "reject_awaiting", caseId: id });
       await sendMessage(chatId, "❌ اكتب سبب الرفض:");
     }
     else if (data.startsWith("docs_")) {
       const id = data.replace("docs_", "");
       await showCaseDocuments(chatId, id);
     }
+    else if (data.startsWith("attach_")) {
+      const id = data.replace("attach_", "");
+      const c  = await getCaseById(id);
+      if (!c) { await sendMessage(chatId, "❌ الطلب غير موجود"); return; }
+      if ((c.documents || []).length >= MAX_DOCS) {
+        await sendMessage(chatId, `⚠️ هذا الطلب وصل للحد الأقصى (${MAX_DOCS} ملفات)`);
+        return;
+      }
+      await persistSession(chatId, {
+        state: "attach_awaiting_file",
+        caseId: c.id,
+        caseNumber: c.caseNumber,
+        documents: c.documents || []
+      });
+      const remaining = MAX_DOCS - (c.documents || []).length;
+      await sendMessage(chatId,
+        `📤 <b>إرفاق مستندات بطلب #${c.caseNumber}</b>\n\nأرسل ملف أو أكثر، ثم اكتب <code>تم</code>\nيمكنك رفع ${remaining} ملف بعد`
+      );
+    }
+    else if (data.startsWith("wa_share_")) {
+      const id = data.replace("wa_share_", "");
+      const c  = await getCaseById(id);
+      if (!c) { await sendMessage(chatId, "❌ الطلب غير موجود"); return; }
+      const msg  = buildWhatsAppMessage(c);
+      const link = `https://wa.me/?text=${encodeURIComponent(msg)}`;
+      await sendMessage(chatId,
+        `📤 <b>مشاركة الطلب عبر واتساب</b>\n\n<a href="${link}">اضغط هنا للفتح في واتساب</a>`,
+        { disable_web_page_preview: false }
+      );
+    }
+    else if (data.startsWith("svc_")) {
+      const session = userSessions.get(chatId);
+      if (session && session.state === "add_service") {
+        const svcIndex = parseInt(data.replace("svc_", ""));
+        await handleServiceSelection(chatId, svcIndex, session);
+      }
+    }
+
   } catch (err) {
-    console.error("Callback error:", err);
+    console.error("handleCallback error:", err);
     await sendMessage(chatId, "❌ حدث خطأ، حاول مرة أخرى");
   }
 }
@@ -466,21 +659,63 @@ async function handleSession(chatId, msg, session) {
   const text = msg.text || "";
 
   switch (session.state) {
+
     case "add_name":
+      if (!text.trim()) { await sendMessage(chatId, "⚠️ أرسل الاسم:"); return; }
       session.personName = text.trim();
       session.state = "add_phone";
+      await persistSession(chatId, session);
       await sendMessage(chatId, `📱 أرسل رقم الهاتف:\n(أو أرسل <code>تخطي</code>)`);
       break;
 
     case "add_phone":
       session.personPhone = text.trim() === "تخطي" ? "" : text.trim();
       session.state = "add_nationalid";
+      await persistSession(chatId, session);
       await sendMessage(chatId, `🆔 أرسل الرقم القومي:\n(أو أرسل <code>تخطي</code>)`);
       break;
 
     case "add_nationalid":
       session.nationalId = text.trim() === "تخطي" ? "" : text.trim();
+      session.state = "add_country";
+      await persistSession(chatId, session);
+      await sendMessage(chatId, `🌍 أرسل الدولة:\n(مثال: مصر - ليبيا - السعودية)\n(أو أرسل <code>تخطي</code>)`);
+      break;
+
+    case "add_country":
+      session.country = text.trim() === "تخطي" ? "" : text.trim();
+      session.state = "add_hospital";
+      await persistSession(chatId, session);
+      await sendMessage(chatId, `🏥 أرسل اسم المستشفى:\n(أو أرسل <code>تخطي</code>)`);
+      break;
+
+    case "add_hospital":
+      session.hospitalName = text.trim() === "تخطي" ? "" : text.trim();
+      session.state = "add_submission_date";
+      await persistSession(chatId, session);
+      const today = new Date().toLocaleDateString("ar-EG", { year: "numeric", month: "2-digit", day: "2-digit" });
+      await sendMessage(chatId, `📅 تاريخ تقديم الطلب:\n(اليوم: ${today})\n(أرسل التاريخ أو <code>اليوم</code> أو <code>تخطي</code>)`);
+      break;
+
+    case "add_submission_date": {
+      const val = text.trim();
+      if (val === "تخطي") {
+        session.submissionDate = "";
+      } else if (val === "اليوم") {
+        session.submissionDate = new Date().toLocaleDateString("ar-EG");
+      } else {
+        session.submissionDate = val;
+      }
+      session.state = "add_response_date";
+      await persistSession(chatId, session);
+      await sendMessage(chatId, `📆 تاريخ الرد (اختياري):\n(أو أرسل <code>تخطي</code>)`);
+      break;
+    }
+
+    case "add_response_date":
+      session.responseDate = text.trim() === "تخطي" ? "" : text.trim();
       session.state = "add_service";
+      await persistSession(chatId, session);
       const buttons = SERVICE_TYPES.map((s, i) => [{ text: s, callback_data: `svc_${i}` }]);
       buttons.push([{ text: "❌ إلغاء", callback_data: "main_menu" }]);
       await sendMessage(chatId, "🏥 اختر نوع الخدمة:", { reply_markup: { inline_keyboard: buttons } });
@@ -489,32 +724,60 @@ async function handleSession(chatId, msg, session) {
     case "add_description":
       session.description = text.trim() === "تخطي" ? "" : text.trim();
       session.state = "add_files";
+      session.documents = [];
+      await persistSession(chatId, session);
       await sendMessage(chatId,
         `📎 أرسل المستندات الآن (صور/PDF/ملفات):\n\n` +
-        `أرسل ملف أو أكتر، وبعدين أرسل <code>تم</code> لما تخلص\n` +
+        `أرسل ملف أو أكثر (حتى ${MAX_DOCS} ملفات)، ثم أرسل <code>تم</code>\n` +
         `(أو أرسل <code>تخطي</code> بدون مستندات)`
       );
       break;
 
     case "add_files":
       if (text.trim() === "تم" || text.trim() === "تخطي") {
-        // Save the case
         const caseData = {
-          personName: session.personName,
-          personPhone: session.personPhone || "",
-          nationalId: session.nationalId || "",
-          serviceType: session.serviceType,
-          description: session.description || "",
-          status: "under_review",
-          response: "",
+          personName:      session.personName,
+          personPhone:     session.personPhone     || "",
+          nationalId:      session.nationalId      || "",
+          country:         session.country         || "",
+          hospitalName:    session.hospitalName    || "",
+          submissionDate:  session.submissionDate  || "",
+          responseDate:    session.responseDate    || "",
+          serviceType:     session.serviceType,
+          description:     session.description    || "",
+          status:          "under_review",
+          response:        "",
           rejectionReason: "",
-          documents: session.documents || []
+          documents:       session.documents || []
         };
         const newCase = await createCase(caseData);
-        userSessions.delete(chatId);
+        await deleteSession(chatId);
         await sendMessage(chatId,
           `✅ <b>تم إنشاء الطلب بنجاح!</b>\n\n${formatCase(newCase)}`,
-          { reply_markup: mainMenuKeyboard() }
+          { reply_markup: mainReplyKeyboard() }
+        );
+      } else if (msg.document || msg.photo) {
+        if ((session.documents || []).length >= MAX_DOCS) {
+          await sendMessage(chatId, `⚠️ وصلت للحد الأقصى (${MAX_DOCS} ملفات). أرسل <code>تم</code> لإنهاء`);
+          return;
+        }
+        const fileId   = msg.document?.file_id || msg.photo?.[msg.photo.length-1]?.file_id;
+        const fileName = msg.document?.file_name || `صورة_${(session.documents||[]).length+1}.jpg`;
+        if (!session.documents) session.documents = [];
+        const result = await saveFileToChannel(fileId, fileName);
+        session.documents.push({
+          name:              fileName,
+          telegramFileId:    result ? result.fileId    : fileId,
+          telegramMessageId: result ? result.messageId : null,
+          type:              msg.document ? "document" : "image",
+          size:              msg.document?.file_size || 0,
+          uploadedAt:        Date.now()
+        });
+        await persistSession(chatId, session);
+        const remaining = MAX_DOCS - session.documents.length;
+        await sendMessage(chatId,
+          `✅ تم رفع: ${fileName}\n📎 إجمالي: ${session.documents.length}/${MAX_DOCS}\n\n` +
+          (remaining > 0 ? `أرسل المزيد أو اكتب <code>تم</code>` : `وصلت للحد الأقصى. أرسل <code>تم</code>`)
         );
       } else {
         await sendMessage(chatId, "📎 أرسل ملفات أو اكتب <code>تم</code> لإنهاء");
@@ -523,100 +786,215 @@ async function handleSession(chatId, msg, session) {
 
     case "search_awaiting_query":
       await doSearch(chatId, text.trim());
-      userSessions.delete(chatId);
+      await deleteSession(chatId);
       break;
 
     case "respond_awaiting":
       await updateCase(session.caseId, { status: "responded", response: text.trim() });
-      userSessions.delete(chatId);
-      await sendMessage(chatId, "✅ تم حفظ الرد");
+      await deleteSession(chatId);
+      await sendMessage(chatId, "✅ تم حفظ الرد بنجاح");
       await showCaseDetail(chatId, session.caseId);
       break;
 
     case "reject_awaiting":
       await updateCase(session.caseId, { status: "rejected", rejectionReason: text.trim() });
-      userSessions.delete(chatId);
+      await deleteSession(chatId);
       await sendMessage(chatId, "✅ تم حفظ سبب الرفض");
       await showCaseDetail(chatId, session.caseId);
       break;
 
     case "attach_awaiting_file":
-      // Handle file for attachment
       await handleAttachFile(chatId, msg, session);
+      break;
+
+    // Documents upload flow
+    case "docs_find_case":
+      await handleDocsFindCase(chatId, text.trim(), session);
+      break;
+
+    case "docs_awaiting_file":
+      await handleDocsFile(chatId, msg, session);
       break;
   }
 }
 
-// ===== Handle service selection callback for add =====
+// ===== Service Selection =====
 async function handleServiceSelection(chatId, serviceIndex, session) {
   session.serviceType = SERVICE_TYPES[serviceIndex];
-  session.state = "add_description";
-  session.documents = [];
-  await sendMessage(chatId,
-    `📝 اكتب وصف الحالة:\n(أو أرسل <code>تخطي</code>)`
-  );
+  session.state       = "add_description";
+  await persistSession(chatId, session);
+  await sendMessage(chatId, `📝 اكتب وصف الحالة:\n(أو أرسل <code>تخطي</code>)`);
 }
 
-// ===== Start Add Case =====
+// ===== Search Flow Start =====
+async function startSearchFlow(chatId) {
+  await persistSession(chatId, { state: "search_awaiting_query" });
+  await sendMessage(chatId, "🔍 أرسل اسم الشخص أو رقم الطلب للبحث:\n\n<i>البحث يدعم اللغة العربية بصورة ذكية ويتجاهل الفرق في الهمزات والتشكيل</i>");
+}
+
+// ===== Add Case =====
 async function startAddCase(chatId) {
-  userSessions.set(chatId, { state: "add_name" });
+  await persistSession(chatId, { state: "add_name" });
   await sendMessage(chatId, "➕ <b>إضافة طلب جديد</b>\n\n👤 أرسل اسم الشخص:");
 }
 
-// ===== Show Cases List =====
+// ===== Cases List =====
 async function showCasesList(chatId) {
   const cases = await getAllCases();
   if (cases.length === 0) {
-    await sendMessage(chatId, "📋 لا توجد طلبات بعد\nاستخدم /add لإضافة طلب جديد", { reply_markup: mainMenuKeyboard() });
+    await sendMessage(chatId, "📋 لا توجد طلبات بعد\nاستخدم /add لإضافة طلب جديد", {
+      reply_markup: mainReplyKeyboard()
+    });
     return;
   }
-  const sorted = cases.sort((a, b) => b.createdAt - a.createdAt).slice(0, 10);
-  await sendMessage(chatId, `📋 <b>الطلبات</b> (${cases.length})`, { reply_markup: casesListKeyboard(sorted) });
+  const sorted = cases.sort((a,b) => b.createdAt - a.createdAt);
+  await sendMessage(chatId, `📋 <b>الطلبات</b> (${sorted.length})`, { reply_markup: casesListKeyboard(sorted, 0) });
 }
 
-// ===== Show Case Detail =====
+// ===== Case Detail =====
 async function showCaseDetail(chatId, id) {
   const c = await getCaseById(id);
-  if (!c) {
-    await sendMessage(chatId, "❌ الطلب غير موجود");
-    return;
-  }
+  if (!c) { await sendMessage(chatId, "❌ الطلب غير موجود"); return; }
 
-  let keyboard = statusKeyboard(id);
-  
-  // Add respond/reject buttons if needed
   const extraButtons = [];
-  if (c.status !== "responded") {
-    extraButtons.push([{ text: "💬 إضافة رد", callback_data: `respond_${id}` }]);
-  }
-  if (c.status !== "rejected") {
-    extraButtons.push([{ text: "❌ رفض الطلب", callback_data: `reject_${id}` }]);
-  }
+  if (c.status !== "responded") extraButtons.push([{ text: "💬 إضافة رد",    callback_data: `respond_${id}` }]);
+  if (c.status !== "rejected")  extraButtons.push([{ text: "❌ رفض الطلب",  callback_data: `reject_${id}`  }]);
+
+  extraButtons.push([{ text: "📤 مشاركة واتساب", callback_data: `wa_share_${id}` }]);
+
   if (c.documents && c.documents.length > 0) {
-    extraButtons.push([{ text: `📎 عرض المستندات (${c.documents.length})`, callback_data: `docs_${id}` }]);
+    extraButtons.push([
+      { text: `📎 عرض المستندات (${c.documents.length})`, callback_data: `docs_${id}` },
+      { text: "📤 إرفاق مستند", callback_data: `attach_${id}` }
+    ]);
+  } else {
+    extraButtons.push([{ text: "📤 إرفاق مستند", callback_data: `attach_${id}` }]);
   }
 
+  const keyboard = statusKeyboard(id);
   keyboard.inline_keyboard = [...extraButtons, ...keyboard.inline_keyboard];
 
   await sendMessage(chatId, formatCase(c), { reply_markup: keyboard });
 }
 
-// ===== Show Case Documents =====
+// ===== Case Documents =====
 async function showCaseDocuments(chatId, id) {
   const c = await getCaseById(id);
   if (!c || !c.documents || c.documents.length === 0) {
-    await sendMessage(chatId, "📎 لا توجد مستندات لهذا الطلب");
+    await sendMessage(chatId, "📎 لا توجد مستندات لهذا الطلب\n\nاستخدم /attach لرفع مستندات");
+    return;
+  }
+  await sendMessage(chatId, `📎 <b>مستندات الطلب #${c.caseNumber} - ${c.personName}</b> (${c.documents.length} ملف)`);
+  for (const doc of c.documents) {
+    if (doc.telegramFileId) {
+      const uploadedDate = doc.uploadedAt
+        ? new Date(doc.uploadedAt).toLocaleDateString("ar-EG")
+        : "—";
+      const sizeStr = doc.size ? `\n📦 الحجم: ${(doc.size/1024).toFixed(0)} KB` : "";
+      await sendDocument(chatId, doc.telegramFileId, `📎 ${doc.name}\n📅 ${uploadedDate}${sizeStr}`);
+    }
+  }
+  await sendMessage(chatId, "─────────────────", {
+    reply_markup: { inline_keyboard: [[
+      { text: "📤 إرفاق مزيد", callback_data: `attach_${id}` },
+      { text: "🔙 رجوع",       callback_data: `view_${id}` }
+    ]]}
+  });
+}
+
+// ===== Documents Upload Flow (/documents command) =====
+async function startDocsUpload(chatId) {
+  await persistSession(chatId, { state: "docs_find_case" });
+  await sendMessage(chatId,
+    `📂 <b>رفع مستندات لطلب</b>\n\nأرسل رقم الطلب أو اسم الشخص:`
+  );
+}
+
+async function handleDocsFindCase(chatId, query, session) {
+  const allCases = await getAllCases();
+  const found = allCases.filter(x =>
+    x.caseNumber === query ||
+    x.id === query ||
+    arabicSearch(x.personName, query)
+  );
+
+  if (found.length === 0) {
+    await sendMessage(chatId, `❌ لم يتم العثور على طلب بـ: "${query}"\nأرسل رقم الطلب أو الاسم مجدداً:`);
     return;
   }
 
-  await sendMessage(chatId, `📎 <b>مستندات الطلب #${c.caseNumber}</b> (${c.documents.length} ملف)`);
-
-  for (const doc of c.documents) {
-    if (doc.telegramFileId) {
-      await sendDocument(chatId, doc.telegramFileId, `📎 ${doc.name}`);
-    } else if (doc.url) {
-      await sendMessage(chatId, `📄 <a href="${doc.url}">${doc.name}</a>`);
+  if (found.length === 1) {
+    const c = found[0];
+    if ((c.documents || []).length >= MAX_DOCS) {
+      await sendMessage(chatId, `⚠️ الطلب #${c.caseNumber} وصل للحد الأقصى (${MAX_DOCS} ملفات)`);
+      await deleteSession(chatId);
+      return;
     }
+    session.caseId     = c.id;
+    session.caseNumber = c.caseNumber;
+    session.documents  = c.documents || [];
+    session.state      = "docs_awaiting_file";
+    await persistSession(chatId, session);
+    const remaining = MAX_DOCS - session.documents.length;
+    await sendMessage(chatId,
+      `✅ تم العثور على الطلب: <b>#${c.caseNumber} - ${c.personName}</b>\n\n` +
+      `📤 أرسل المستندات الآن (حتى ${remaining} ملف)\n` +
+      `ثم أرسل <code>تم</code> للحفظ\n\n` +
+      `يُقبل: PDF, JPG, PNG, DOCX وغيرها`
+    );
+    return;
+  }
+
+  // Multiple results
+  const buttons = found.slice(0, 8).map(c => [{
+    text: `#${c.caseNumber} - ${c.personName}`,
+    callback_data: `attach_${c.id}`
+  }]);
+  buttons.push([{ text: "❌ إلغاء", callback_data: "main_menu" }]);
+  await deleteSession(chatId);
+  await sendMessage(chatId,
+    `🔍 تم العثور على ${found.length} طلبات. اختر الطلب:`,
+    { reply_markup: { inline_keyboard: buttons } }
+  );
+}
+
+async function handleDocsFile(chatId, msg, session) {
+  const text = msg.text || "";
+
+  if (text.trim() === "تم") {
+    await updateCase(session.caseId, { documents: session.documents });
+    await deleteSession(chatId);
+    await sendMessage(chatId,
+      `✅ تم حفظ ${session.documents.length} مستند لطلب #${session.caseNumber}`,
+      { reply_markup: mainReplyKeyboard() }
+    );
+    return;
+  }
+
+  if (msg.document || msg.photo) {
+    if (session.documents.length >= MAX_DOCS) {
+      await sendMessage(chatId, `⚠️ وصلت للحد الأقصى (${MAX_DOCS} ملفات). أرسل <code>تم</code> لإنهاء`);
+      return;
+    }
+    const fileId   = msg.document?.file_id || msg.photo?.[msg.photo.length-1]?.file_id;
+    const fileName = msg.document?.file_name || `صورة_${session.documents.length+1}.jpg`;
+    const result   = await saveFileToChannel(fileId, fileName);
+    session.documents.push({
+      name:              fileName,
+      telegramFileId:    result ? result.fileId    : fileId,
+      telegramMessageId: result ? result.messageId : null,
+      type:              msg.document ? "document" : "image",
+      size:              msg.document?.file_size || 0,
+      uploadedAt:        Date.now()
+    });
+    await persistSession(chatId, session);
+    const remaining = MAX_DOCS - session.documents.length;
+    await sendMessage(chatId,
+      `✅ تم رفع: ${fileName}\n📎 إجمالي: ${session.documents.length}/${MAX_DOCS}\n\n` +
+      (remaining > 0 ? `أرسل المزيد أو اكتب <code>تم</code>` : `وصلت للحد الأقصى. أرسل <code>تم</code>`)
+    );
+  } else {
+    await sendMessage(chatId, "📎 أرسل ملف أو اكتب <code>تم</code> لإنهاء");
   }
 }
 
@@ -624,184 +1002,221 @@ async function showCaseDocuments(chatId, id) {
 async function doSearch(chatId, query) {
   const results = await searchCases(query);
   if (results.length === 0) {
-    await sendMessage(chatId, `🔍 لا توجد نتائج لـ: "${query}"`, { reply_markup: mainMenuKeyboard() });
+    await sendMessage(chatId, `🔍 لا توجد نتائج لـ: "${query}"`, { reply_markup: mainReplyKeyboard() });
     return;
   }
-  await sendMessage(chatId, `🔍 <b>نتائج البحث</b> (${results.length})`, { reply_markup: casesListKeyboard(results) });
+  const sorted = results.sort((a,b) => b.createdAt - a.createdAt);
+  await sendMessage(chatId, `🔍 <b>نتائج البحث عن "${query}"</b> (${sorted.length} نتيجة)`, {
+    reply_markup: casesListKeyboard(sorted, 0)
+  });
 }
 
 // ===== Stats =====
 async function showStats(chatId) {
-  const cases = await getAllCases();
-  const total = cases.length;
-  const counts = { executed: 0, under_review: 0, under_procedure: 0, responded: 0, rejected: 0 };
+  const cases   = await getAllCases();
+  const total   = cases.length;
+  const counts  = { executed:0, under_review:0, under_procedure:0, responded:0, rejected:0 };
   let totalDocs = 0;
+  const countryMap  = {};
+  const hospitalMap = {};
+
   cases.forEach(c => {
     if (counts[c.status] !== undefined) counts[c.status]++;
     if (c.documents) totalDocs += c.documents.length;
+    if (c.country)      countryMap[c.country]       = (countryMap[c.country]       || 0) + 1;
+    if (c.hospitalName) hospitalMap[c.hospitalName]  = (hospitalMap[c.hospitalName] || 0) + 1;
   });
 
   let text = `📊 <b>إحصائيات El Ashry Pro</b>\n\n`;
-  text += `📋 إجمالي الطلبات: <b>${total}</b>\n`;
+  text += `📋 إجمالي الطلبات: <b>${total}</b>\n\n`;
   for (const [key, label] of Object.entries(STATUS_LABELS)) {
     text += `${label}: <b>${counts[key]}</b>\n`;
   }
-  text += `\n📎 المستندات: <b>${totalDocs}</b>`;
+  text += `\n📎 إجمالي المستندات: <b>${totalDocs}</b>`;
 
-  await sendMessage(chatId, text, { reply_markup: mainMenuKeyboard() });
+  const topCountries = Object.entries(countryMap).sort((a,b) => b[1]-a[1]).slice(0,3);
+  if (topCountries.length > 0) {
+    text += `\n\n🌍 <b>أكثر الدول:</b>\n`;
+    topCountries.forEach(([c,n]) => { text += `  • ${c}: ${n}\n`; });
+  }
+
+  await sendMessage(chatId, text, { reply_markup: mainReplyKeyboard() });
 }
 
-// ===== Handle File Upload (standalone - not attached to case) =====
-async function handleFileUpload(chatId, msg) {
-  const fileId = msg.document?.file_id || msg.photo?.[msg.photo.length - 1]?.file_id;
-  const fileName = msg.document?.file_name || "صورة";
+// ===== Help =====
+async function showHelp(chatId) {
+  await sendMessage(chatId,
+    `📋 <b>دليل الاستخدام - El Ashry Pro v4</b>\n\n` +
+    `<b>القائمة الثابتة في الأسفل:</b>\n` +
+    `📋 الطلبات - عرض جميع الطلبات\n` +
+    `➕ طلب جديد - إضافة طلب جديد\n` +
+    `🔍 بحث - البحث الذكي\n` +
+    `📂 مستندات - رفع مستندات\n` +
+    `📊 إحصائيات - الإحصائيات\n\n` +
+    `<b>الأوامر النصية:</b>\n` +
+    `/add - إضافة طلب جديد\n` +
+    `/cases - عرض كل الطلبات\n` +
+    `/search أحمد - بحث بالاسم أو الرقم\n` +
+    `/documents - رفع مستندات لطلب\n` +
+    `/attach 5 - إرفاق ملف بطلب رقم 5\n` +
+    `/stats - الإحصائيات\n` +
+    `/logout - تسجيل الخروج\n\n` +
+    `<b>رفع المستندات على التلجرام:</b>\n` +
+    `📎 يمكنك رفع أي ملف (PDF/صورة/وثيقة) مباشرة في المحادثة وسيُحفظ في القناة وربطه بالطلب\n\n` +
+    `<b>ميزات النظام:</b>\n` +
+    `🌍 دعم البلد والمستشفى\n` +
+    `📅 تواريخ تقديم ورد\n` +
+    `🔍 بحث عربي ذكي\n` +
+    `📤 مشاركة واتساب\n` +
+    `📎 حتى ${MAX_DOCS} مستندات لكل طلب`,
+    { reply_markup: mainReplyKeyboard() }
+  );
+}
 
+// ===== Standalone File Upload =====
+async function handleFileUpload(chatId, msg) {
+  const fileId   = msg.document?.file_id || msg.photo?.[msg.photo.length-1]?.file_id;
+  const fileName = msg.document?.file_name || "صورة";
   if (!fileId) return;
 
-  // Save file to the private channel
-  const result = await saveFileToChannel(chatId, fileId, fileName);
-
+  const result = await saveFileToChannel(fileId, fileName);
   if (result) {
     await sendMessage(chatId,
       `✅ <b>تم حفظ المستند في القناة</b>\n\n` +
-      `📄 ${fileName}\n` +
-      `🆔 Message ID: ${result.messageId}\n\n` +
-      `💡 لإرفاقه بطلب، استخدم:\n<code>/attach رقم_الحالة</code>`
+      `📄 ${fileName}\n\n` +
+      `💡 لإرفاقه بطلب:\n<code>/documents</code>`
     );
   } else {
     await sendMessage(chatId, `✅ تم استلام: ${fileName}\n⚠️ لم يتم حفظه في القناة`);
   }
 }
 
-// ===== Start Attach File to Case =====
+// ===== Attach File to Case =====
 async function startAttachFile(chatId, caseNumber) {
   if (!caseNumber) {
-    await sendMessage(chatId, "📝 أرسل رقم الحالة:\nمثال: <code>/attach EA-202606-0001</code>");
+    await sendMessage(chatId, "📝 مثال: <code>/attach 5</code> أو <code>/attach أحمد محمد</code>");
     return;
   }
-
   const allCases = await getAllCases();
-  const c = allCases.find(x => x.caseNumber === caseNumber || x.id === caseNumber);
+  const c = allCases.find(x =>
+    x.caseNumber === caseNumber ||
+    x.id === caseNumber ||
+    arabicSearch(x.personName, caseNumber)
+  );
+  if (!c) { await sendMessage(chatId, `❌ لم يتم العثور على الحالة: ${caseNumber}`); return; }
 
-  if (!c) {
-    await sendMessage(chatId, `❌ لم يتم العثور على الحالة: ${caseNumber}`);
+  if ((c.documents || []).length >= MAX_DOCS) {
+    await sendMessage(chatId, `⚠️ الطلب #${c.caseNumber} وصل للحد الأقصى (${MAX_DOCS} ملفات)`);
     return;
   }
 
-  userSessions.set(chatId, { state: "attach_awaiting_file", caseId: c.id, caseNumber: c.caseNumber, documents: c.documents || [] });
-  await sendMessage(chatId, `📎 أرسل المستندات لطلب #${c.caseNumber}:\n(أرسل ملف أو أكتر، ثم أرسل <code>تم</code>)`);
+  await persistSession(chatId, {
+    state: "attach_awaiting_file",
+    caseId: c.id,
+    caseNumber: c.caseNumber,
+    documents: c.documents || []
+  });
+  const remaining = MAX_DOCS - (c.documents || []).length;
+  await sendMessage(chatId,
+    `📎 أرسل المستندات لطلب #${c.caseNumber} - ${c.personName}:\n` +
+    `(أرسل ملف أو أكثر، حتى ${remaining} ملف، ثم أرسل <code>تم</code>)`
+  );
 }
 
-// ===== Handle File Attachment =====
 async function handleAttachFile(chatId, msg, session) {
   const text = msg.text;
-
   if (text && text.trim() === "تم") {
-    // Save updated documents
     await updateCase(session.caseId, { documents: session.documents });
-    userSessions.delete(chatId);
-    await sendMessage(chatId, `✅ تم حفظ المستندات لطلب #${session.caseNumber}`, { reply_markup: mainMenuKeyboard() });
+    await deleteSession(chatId);
+    await sendMessage(chatId,
+      `✅ تم حفظ ${session.documents.length} مستند لطلب #${session.caseNumber}`,
+      { reply_markup: mainReplyKeyboard() }
+    );
     return;
   }
 
-  const fileId = msg.document?.file_id || msg.photo?.[msg.photo.length - 1]?.file_id;
-  const fileName = msg.document?.file_name || `صورة_${session.documents.length + 1}.jpg`;
+  const fileId   = msg.document?.file_id || msg.photo?.[msg.photo.length-1]?.file_id;
+  const fileName = msg.document?.file_name || `صورة_${session.documents.length+1}.jpg`;
+  if (!fileId) { await sendMessage(chatId, "📎 أرسل ملف أو اكتب <code>تم</code> لإنهاء"); return; }
 
-  if (!fileId) {
-    await sendMessage(chatId, "📎 أرسل ملف أو اكتب <code>تم</code> لإنهاء");
+  if (session.documents.length >= MAX_DOCS) {
+    await sendMessage(chatId, `⚠️ وصلت للحد الأقصى. أرسل <code>تم</code>`);
     return;
   }
 
-  // Save to channel
-  const result = await saveFileToChannel(chatId, fileId, fileName);
-
+  const result = await saveFileToChannel(fileId, fileName);
   session.documents.push({
-    name: fileName,
-    url: result ? `https://api.telegram.org/file/bot${BOT_TOKEN}/${result.fileId}` : "",
-    telegramFileId: result ? result.fileId : fileId,
+    name:              fileName,
+    telegramFileId:    result ? result.fileId    : fileId,
     telegramMessageId: result ? result.messageId : null,
-    type: msg.document ? "document" : "image",
-    size: msg.document?.file_size || 0
+    type:              msg.document ? "document" : "image",
+    size:              msg.document?.file_size || 0,
+    uploadedAt:        Date.now()
   });
+  await persistSession(chatId, session);
 
-  await sendMessage(chatId, `✅ تم رفع: ${fileName}\n📎 إجمالي المستندات: ${session.documents.length}\n\nأرسل المزيد أو اكتب <code>تم</code>`);
+  const remaining = MAX_DOCS - session.documents.length;
+  await sendMessage(chatId,
+    `✅ تم رفع: ${fileName}\n📎 إجمالي: ${session.documents.length}/${MAX_DOCS}\n\n` +
+    (remaining > 0 ? `أرسل المزيد أو اكتب <code>تم</code>` : `وصلت للحد الأقصى. أرسل <code>تم</code>`)
+  );
 }
 
-// ===== Polling (works without webhook setup) =====
-let lastUpdateId = 0;
-const RESTART_INTERVAL_HOURS = 5;
-const RESTART_INTERVAL_MS = RESTART_INTERVAL_HOURS * 60 * 60 * 1000;
-
 // ===== Auto-Restart Every 5 Hours =====
+const RESTART_HOURS = 5;
+const RESTART_MS    = RESTART_HOURS * 60 * 60 * 1000;
+
 function scheduleAutoRestart() {
-  const nextRestart = new Date(Date.now() + RESTART_INTERVAL_MS);
-  console.log(`⏰ إعادة التشغيل التلقائية القادمة: ${nextRestart.toLocaleString("ar-EG")}`);
+  const next = new Date(Date.now() + RESTART_MS);
+  console.log(`⏰ إعادة التشغيل التلقائية القادمة: ${next.toLocaleString("ar-EG")}`);
 
   setTimeout(async () => {
-    console.log("🔄 جاري إعادة تشغيل البوت تلقائياً (كل 5 ساعات)...");
-
-    // Notify all authenticated users
+    console.log("🔄 إعادة تشغيل تلقائية...");
     for (const chatId of authUsers) {
       try {
         await sendMessage(chatId,
           `🔄 <b>إعادة تشغيل تلقائية</b>\n\n` +
-          `⏱ البوت يعيد تشغيل نفسه الآن (كل ${RESTART_INTERVAL_HOURS} ساعات)\n` +
-          `⏰ الوقت: ${new Date().toLocaleString("ar-EG")}\n\n` +
-          `✅ سيعود البوت خلال ثوانٍ...`
+          `⏱ البوت يعيد تشغيل نفسه كل ${RESTART_HOURS} ساعات\n` +
+          `✅ سيعود خلال ثوانٍ...`
         );
-      } catch (e) {}
+      } catch(e) {}
     }
-
-    // Wait 2 seconds then exit (process manager like PM2 will restart it)
     await new Promise(r => setTimeout(r, 2000));
-    console.log("🛑 إيقاف البوت لإعادة التشغيل...");
     process.exit(0);
-  }, RESTART_INTERVAL_MS);
+  }, RESTART_MS);
 }
 
-async function startPolling() {
-  const startTime = new Date();
-  console.log("🤖 El Ashry Pro Bot - جاري التشغيل...");
-  console.log(`👤 اسم البوت: ${BOT_USERNAME}`);
-  console.log(`📌 Bot Token: ✅ ${BOT_TOKEN.slice(0, 10)}...`);
-  console.log(`📌 Channel ID: ✅ ${CHANNEL_ID}`);
-  console.log(`🔑 كلمة المرور: ${BOT_PASSWORD}`);
-  console.log(`🕐 وقت التشغيل: ${startTime.toLocaleString("ar-EG")}`);
-  console.log(`⏰ إعادة التشغيل كل: ${RESTART_INTERVAL_HOURS} ساعات`);
-  console.log("─────────────────────────────────");
-  console.log("برمجة وتطوير بكل ❤️ ينبض - المهندس محمد حماد");
-  console.log("─────────────────────────────────");
+// ===== Polling =====
+let lastUpdateId = 0;
 
-  // Schedule auto-restart every 5 hours
+async function startPolling() {
+  console.log("🤖 El Ashry Pro Bot v4.0 - جاري التشغيل...");
+  console.log(`👤 ${BOT_USERNAME}`);
+  console.log(`📌 Token:   ✅ ${BOT_TOKEN.slice(0,10)}...`);
+  console.log(`📌 Channel: ✅ ${CHANNEL_ID}`);
+  console.log(`🔑 Password: ${BOT_PASSWORD}`);
+  console.log(`📎 الحد الأقصى للمستندات: ${MAX_DOCS} ملف`);
+  console.log("─────────────────────────────────────────");
+
+  await loadAuthUsers();
+  await loadSessions();
+  console.log(`✅ تم تحميل ${authUsers.size} مستخدم و ${userSessions.size} جلسة`);
+
+  await setBotMenuButton();
+
   scheduleAutoRestart();
 
   while (true) {
     try {
       const res = await tg("getUpdates", {
-        offset: lastUpdateId + 1,
-        timeout: 30,
+        offset:          lastUpdateId + 1,
+        timeout:         30,
         allowed_updates: ["message", "callback_query"]
       });
 
       if (res.ok && res.result) {
         for (const update of res.result) {
           lastUpdateId = update.update_id;
-
-          // Handle service selection in add flow
-          if (update.callback_query) {
-            const data = update.callback_query.data;
-            if (data && data.startsWith("svc_")) {
-              const chatId = update.callback_query.message.chat.id;
-              const session = userSessions.get(chatId);
-              if (session && session.state === "add_nationalid") {
-                const svcIndex = parseInt(data.replace("svc_", ""));
-                await tg("answerCallbackQuery", { callback_query_id: update.callback_query.id });
-                await handleServiceSelection(chatId, svcIndex, session);
-                continue;
-              }
-            }
-          }
-
           await handleUpdate(update);
         }
       }
@@ -812,5 +1227,4 @@ async function startPolling() {
   }
 }
 
-// ===== Start =====
 startPolling();
