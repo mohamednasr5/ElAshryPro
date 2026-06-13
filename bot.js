@@ -1,7 +1,7 @@
 // ============================================================
 //  El Ashry Pro - Telegram Bot v3.0
 //  بوت تليجرام كامل للتحكم في نظام إدارة الحالات
-//  برمجة وتطوير بكل ❤️ ينبض - المهندس محمد حماد
+//  برمجة وتطوير بكل ❤️ حب - المهندس محمد حماد
 // ============================================================
 
 const BOT_TOKEN   = process.env.BOT_TOKEN   || "8932213518:AAFdrQGmLPCAtSbZGV069yVtEVwsXZZd31o";
@@ -44,9 +44,49 @@ const SERVICE_TYPES = [
   "خدمة أخرى"
 ];
 
-// ===== State =====
+// ===== State (Firebase-backed to survive restarts) =====
 const authUsers    = new Set();
 const userSessions = new Map();
+
+async function loadAuthUsers() {
+  try {
+    const snap = await get(ref(db, "auth_users"));
+    if (snap.val()) {
+      for (const id of Object.values(snap.val())) authUsers.add(Number(id));
+    }
+  } catch(e) { console.error("loadAuthUsers:", e); }
+}
+
+async function persistAuthAdd(chatId) {
+  authUsers.add(chatId);
+  await set(ref(db, `auth_users/${chatId}`), chatId);
+}
+
+async function persistAuthRemove(chatId) {
+  authUsers.delete(chatId);
+  await remove(ref(db, `auth_users/${chatId}`));
+}
+
+async function loadSessions() {
+  try {
+    const snap = await get(ref(db, "sessions"));
+    if (snap.val()) {
+      for (const [id, session] of Object.entries(snap.val())) {
+        userSessions.set(Number(id), session);
+      }
+    }
+  } catch(e) { console.error("loadSessions:", e); }
+}
+
+async function persistSession(chatId, session) {
+  userSessions.set(chatId, session);
+  await set(ref(db, `sessions/${chatId}`), session);
+}
+
+async function deleteSession(chatId) {
+  userSessions.delete(chatId);
+  await remove(ref(db, `sessions/${chatId}`));
+}
 
 // ===== Telegram API =====
 async function tg(method, data = {}) {
@@ -247,7 +287,7 @@ async function handleUpdate(update) {
     // ---- Auth ----
     if (!authUsers.has(chatId)) {
       if (text.trim() === BOT_PASSWORD || text.startsWith("/start " + BOT_PASSWORD)) {
-        authUsers.add(chatId);
+        await persistAuthAdd(chatId);
         await sendMessage(chatId,
           `✅ <b>تم تسجيل الدخول بنجاح!</b>\n\n` +
           `مرحباً بك في نظام <b>El Ashry Pro</b> 🏥\n` +
@@ -265,11 +305,11 @@ async function handleUpdate(update) {
       return;
     }
 
-    // ---- Session ----
+    // ---- Session (must come before file upload check) ----
     const session = userSessions.get(chatId);
     if (session) { await handleSession(chatId, msg, session); return; }
 
-    // ---- File Upload ----
+    // ---- Standalone File Upload (no active session) ----
     if (msg.document || msg.photo) { await handleFileUpload(chatId, msg); return; }
 
     // ---- Commands ----
@@ -282,8 +322,8 @@ async function handleUpdate(update) {
       return;
     }
     if (text.startsWith("/logout")) {
-      authUsers.delete(chatId);
-      userSessions.delete(chatId);
+      await persistAuthRemove(chatId);
+      await deleteSession(chatId);
       await sendMessage(chatId, "👋 تم تسجيل الخروج بنجاح");
       return;
     }
@@ -308,6 +348,15 @@ async function handleUpdate(update) {
     if (text.startsWith("/attach")) {
       const caseNumber = text.replace("/attach", "").trim();
       await startAttachFile(chatId, caseNumber);
+      return;
+    }
+    if (text.startsWith("/docs")) {
+      const caseNumber = text.replace("/docs", "").trim();
+      if (!caseNumber) { await sendMessage(chatId, "📎 مثال: <code>/docs EA-202606-0001</code>"); return; }
+      const allCases = await getAllCases();
+      const c = allCases.find(x => x.caseNumber === caseNumber || x.id === caseNumber);
+      if (!c) { await sendMessage(chatId, `❌ لم يتم العثور على الحالة: ${caseNumber}`); return; }
+      await showCaseDocuments(chatId, c.id);
       return;
     }
 
@@ -341,7 +390,7 @@ async function handleCallback(cb) {
       await startAddCase(chatId);
     }
     else if (data === "search_start") {
-      userSessions.set(chatId, { state: "search_awaiting_query" });
+      await persistSession(chatId, { state: "search_awaiting_query" });
       await sendMessage(chatId, "🔍 أرسل اسم الشخص أو رقم الحالة للبحث:");
     }
     else if (data === "stats") {
@@ -389,17 +438,31 @@ async function handleCallback(cb) {
     }
     else if (data.startsWith("respond_")) {
       const id = data.replace("respond_", "");
-      userSessions.set(chatId, { state: "respond_awaiting", caseId: id });
+      await persistSession(chatId, { state: "respond_awaiting", caseId: id });
       await sendMessage(chatId, "💬 اكتب الرد:");
     }
     else if (data.startsWith("reject_")) {
       const id = data.replace("reject_", "");
-      userSessions.set(chatId, { state: "reject_awaiting", caseId: id });
+      await persistSession(chatId, { state: "reject_awaiting", caseId: id });
       await sendMessage(chatId, "❌ اكتب سبب الرفض:");
     }
     else if (data.startsWith("docs_")) {
       const id = data.replace("docs_", "");
       await showCaseDocuments(chatId, id);
+    }
+    else if (data.startsWith("attach_")) {
+      const id = data.replace("attach_", "");
+      const c  = await getCaseById(id);
+      if (!c) { await sendMessage(chatId, "❌ الطلب غير موجود"); return; }
+      await persistSession(chatId, {
+        state: "attach_awaiting_file",
+        caseId: c.id,
+        caseNumber: c.caseNumber,
+        documents: c.documents || []
+      });
+      await sendMessage(chatId,
+        `📤 <b>إرفاق مستندات بطلب #${c.caseNumber}</b>\n\nأرسل ملف أو أكثر، ثم اكتب <code>تم</code>`
+      );
     }
     else if (data.startsWith("svc_")) {
       const session = userSessions.get(chatId);
@@ -425,18 +488,21 @@ async function handleSession(chatId, msg, session) {
       if (!text.trim()) { await sendMessage(chatId, "⚠️ أرسل الاسم:"); return; }
       session.personName = text.trim();
       session.state = "add_phone";
+      await persistSession(chatId, session);
       await sendMessage(chatId, `📱 أرسل رقم الهاتف:\n(أو أرسل <code>تخطي</code>)`);
       break;
 
     case "add_phone":
       session.personPhone = text.trim() === "تخطي" ? "" : text.trim();
       session.state = "add_nationalid";
+      await persistSession(chatId, session);
       await sendMessage(chatId, `🆔 أرسل الرقم القومي:\n(أو أرسل <code>تخطي</code>)`);
       break;
 
     case "add_nationalid":
       session.nationalId = text.trim() === "تخطي" ? "" : text.trim();
       session.state = "add_service";
+      await persistSession(chatId, session);
       const buttons = SERVICE_TYPES.map((s, i) => [{ text: s, callback_data: `svc_${i}` }]);
       buttons.push([{ text: "❌ إلغاء", callback_data: "main_menu" }]);
       await sendMessage(chatId, "🏥 اختر نوع الخدمة:", { reply_markup: { inline_keyboard: buttons } });
@@ -446,6 +512,7 @@ async function handleSession(chatId, msg, session) {
       session.description = text.trim() === "تخطي" ? "" : text.trim();
       session.state = "add_files";
       session.documents = [];
+      await persistSession(chatId, session);
       await sendMessage(chatId,
         `📎 أرسل المستندات الآن (صور/PDF/ملفات):\n\n` +
         `أرسل ملف أو أكثر، ثم أرسل <code>تم</code> لما تخلص\n` +
@@ -467,7 +534,7 @@ async function handleSession(chatId, msg, session) {
           documents:       session.documents || []
         };
         const newCase = await createCase(caseData);
-        userSessions.delete(chatId);
+        await deleteSession(chatId);
         await sendMessage(chatId,
           `✅ <b>تم إنشاء الطلب بنجاح!</b>\n\n${formatCase(newCase)}`,
           { reply_markup: mainMenuKeyboard() }
@@ -484,6 +551,7 @@ async function handleSession(chatId, msg, session) {
           type:              msg.document ? "document" : "image",
           size:              msg.document?.file_size || 0
         });
+        await persistSession(chatId, session);
         await sendMessage(chatId,
           `✅ تم رفع: ${fileName}\n📎 إجمالي المستندات: ${session.documents.length}\n\nأرسل المزيد أو اكتب <code>تم</code>`
         );
@@ -494,19 +562,19 @@ async function handleSession(chatId, msg, session) {
 
     case "search_awaiting_query":
       await doSearch(chatId, text.trim());
-      userSessions.delete(chatId);
+      await deleteSession(chatId);
       break;
 
     case "respond_awaiting":
       await updateCase(session.caseId, { status: "responded", response: text.trim() });
-      userSessions.delete(chatId);
+      await deleteSession(chatId);
       await sendMessage(chatId, "✅ تم حفظ الرد بنجاح");
       await showCaseDetail(chatId, session.caseId);
       break;
 
     case "reject_awaiting":
       await updateCase(session.caseId, { status: "rejected", rejectionReason: text.trim() });
-      userSessions.delete(chatId);
+      await deleteSession(chatId);
       await sendMessage(chatId, "✅ تم حفظ سبب الرفض");
       await showCaseDetail(chatId, session.caseId);
       break;
@@ -521,12 +589,13 @@ async function handleSession(chatId, msg, session) {
 async function handleServiceSelection(chatId, serviceIndex, session) {
   session.serviceType = SERVICE_TYPES[serviceIndex];
   session.state       = "add_description";
+  await persistSession(chatId, session);
   await sendMessage(chatId, `📝 اكتب وصف الحالة:\n(أو أرسل <code>تخطي</code>)`);
 }
 
 // ===== Add Case =====
 async function startAddCase(chatId) {
-  userSessions.set(chatId, { state: "add_name" });
+  await persistSession(chatId, { state: "add_name" });
   await sendMessage(chatId, "➕ <b>إضافة طلب جديد</b>\n\n👤 أرسل اسم الشخص:");
 }
 
@@ -549,8 +618,14 @@ async function showCaseDetail(chatId, id) {
   const extraButtons = [];
   if (c.status !== "responded") extraButtons.push([{ text: "💬 إضافة رد",   callback_data: `respond_${id}` }]);
   if (c.status !== "rejected")  extraButtons.push([{ text: "❌ رفض الطلب", callback_data: `reject_${id}`  }]);
-  if (c.documents && c.documents.length > 0)
-    extraButtons.push([{ text: `📎 عرض المستندات (${c.documents.length})`, callback_data: `docs_${id}` }]);
+  if (c.documents && c.documents.length > 0) {
+    extraButtons.push([
+      { text: `📎 عرض المستندات (${c.documents.length})`, callback_data: `docs_${id}` },
+      { text: "📤 إرفاق مستند", callback_data: `attach_${id}` }
+    ]);
+  } else {
+    extraButtons.push([{ text: "📤 إرفاق مستند", callback_data: `attach_${id}` }]);
+  }
 
   const keyboard = statusKeyboard(id);
   keyboard.inline_keyboard = [...extraButtons, ...keyboard.inline_keyboard];
@@ -652,7 +727,7 @@ async function startAttachFile(chatId, caseNumber) {
   const allCases = await getAllCases();
   const c = allCases.find(x => x.caseNumber === caseNumber || x.id === caseNumber);
   if (!c) { await sendMessage(chatId, `❌ لم يتم العثور على الحالة: ${caseNumber}`); return; }
-  userSessions.set(chatId, { state: "attach_awaiting_file", caseId: c.id, caseNumber: c.caseNumber, documents: c.documents || [] });
+  await persistSession(chatId, { state: "attach_awaiting_file", caseId: c.id, caseNumber: c.caseNumber, documents: c.documents || [] });
   await sendMessage(chatId, `📎 أرسل المستندات لطلب #${c.caseNumber}:\n(أرسل ملف أو أكثر، ثم أرسل <code>تم</code>)`);
 }
 
@@ -660,7 +735,7 @@ async function handleAttachFile(chatId, msg, session) {
   const text = msg.text;
   if (text && text.trim() === "تم") {
     await updateCase(session.caseId, { documents: session.documents });
-    userSessions.delete(chatId);
+    await deleteSession(chatId);
     await sendMessage(chatId, `✅ تم حفظ ${session.documents.length} مستند لطلب #${session.caseNumber}`, { reply_markup: mainMenuKeyboard() });
     return;
   }
@@ -677,6 +752,7 @@ async function handleAttachFile(chatId, msg, session) {
     type:              msg.document ? "document" : "image",
     size:              msg.document?.file_size || 0
   });
+  await persistSession(chatId, session);
 
   await sendMessage(chatId,
     `✅ تم رفع: ${fileName}\n📎 إجمالي المستندات: ${session.documents.length}\n\nأرسل المزيد أو اكتب <code>تم</code>`
@@ -720,6 +796,11 @@ async function startPolling() {
   console.log(`⏰ إعادة التشغيل كل ${RESTART_HOURS} ساعات`);
   console.log(`🕐 ${new Date().toLocaleString("ar-EG")}`);
   console.log("─────────────────────────────────────────");
+
+  // Load persistent state from Firebase
+  await loadAuthUsers();
+  await loadSessions();
+  console.log(`✅ تم تحميل ${authUsers.size} مستخدم مسجل و ${userSessions.size} جلسة نشطة`);
 
   scheduleAutoRestart();
 
