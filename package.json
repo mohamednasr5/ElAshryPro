@@ -1,20 +1,18 @@
 {
-  "name": "el-ashry-pro-bot",
-  "version": "3.0.0",
-  "description": "El Ashry Pro - Telegram Bot + PWA",
-  "main": "bot.js",
+  "name": "elashry-bot",
+  "version": "4.0.0",
+  "description": "El Ashry Pro - Telegram Bot v4.0",
+  "main": "elashry_bot.js",
+  "type": "commonjs",
   "scripts": {
-    "start":       "node bot.js",
-    "dev":         "node --watch bot.js",
-    "pm2":         "pm2 start ecosystem.config.js",
-    "pm2:stop":    "pm2 stop el-ashry-pro-bot",
-    "pm2:restart": "pm2 restart el-ashry-pro-bot",
-    "pm2:logs":    "pm2 logs el-ashry-pro-bot"
+    "start": "node elashry_bot.js"
   },
   "dependencies": {
-    "firebase": "^10.0.0"
+    "firebase": "^10.14.1"
   },
   "engines": {
-    "node": ">=18.0.0"
-  }
+    "node": ">=20.0.0"
+  },
+  "author": "Mohamed Hammad",
+  "license": "ISC"
 }
