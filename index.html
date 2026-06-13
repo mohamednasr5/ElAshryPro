@@ -9,578 +9,259 @@
   <meta name="theme-color" content="#0d9488">
   <title>El Ashry Pro</title>
 
-  <!-- Firebase SDK -->
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
 
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800&display=swap');
-
     * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-
     :root {
-      --teal: #0d9488;
-      --teal-dark: #0f766e;
-      --teal-darker: #115e59;
-      --emerald: #10b981;
-      --amber: #f59e0b;
-      --sky: #0ea5e9;
-      --violet: #8b5cf6;
-      --red: #ef4444;
-      --green-wa: #25D366;
-      --bg: #f8fafc;
-      --card: #ffffff;
-      --text: #1e293b;
-      --text2: #64748b;
-      --text3: #94a3b8;
-      --border: #e2e8f0;
-      --radius: 12px;
-      --safe-bottom: env(safe-area-inset-bottom, 0px);
+      --teal: #0d9488; --teal-dark: #0f766e; --teal-darker: #115e59;
+      --emerald: #10b981; --amber: #f59e0b; --sky: #0ea5e9;
+      --violet: #8b5cf6; --red: #ef4444; --green-wa: #25D366;
+      --bg: #f8fafc; --card: #ffffff; --text: #1e293b;
+      --text2: #64748b; --text3: #94a3b8; --border: #e2e8f0;
+      --radius: 12px; --safe-bottom: env(safe-area-inset-bottom, 0px);
     }
+    body { font-family: 'Cairo', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; overflow-x: hidden; }
 
-    body {
-      font-family: 'Cairo', sans-serif;
-      background: var(--bg);
-      color: var(--text);
-      min-height: 100vh;
-      overflow-x: hidden;
-    }
-
-    /* ========== LOGIN ========== */
-    .login-screen {
-      min-height: 100vh;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      padding: 24px;
-      background: linear-gradient(135deg, #0d9488, #115e59);
-    }
-    .login-logo {
-      width: 96px; height: 96px; border-radius: 50%;
-      background: rgba(255,255,255,0.2); backdrop-filter: blur(8px);
-      display: flex; align-items: center; justify-content: center;
-      margin-bottom: 16px;
-    }
+    .login-screen { min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 24px; background: linear-gradient(135deg, #0d9488, #115e59); }
+    .login-logo { width: 96px; height: 96px; border-radius: 50%; background: rgba(255,255,255,0.2); backdrop-filter: blur(8px); display: flex; align-items: center; justify-content: center; margin-bottom: 16px; }
     .login-logo svg { width: 48px; height: 48px; fill: white; }
     .login-title { font-size: 28px; font-weight: 800; color: #fff; margin-bottom: 4px; }
     .login-sub { color: #ccfbf1; font-size: 14px; }
     .login-office { color: #99f6e4; font-size: 12px; margin-top: 4px; }
-    .login-card {
-      width: 100%; max-width: 380px;
-      background: #fff; border-radius: 20px;
-      padding: 32px 24px; margin-top: 32px;
-      box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25);
-    }
-    .login-icon-circle {
-      width: 56px; height: 56px; border-radius: 50%;
-      background: #f0fdfa; display: flex; align-items: center;
-      justify-content: center; margin: 0 auto 12px;
-    }
+    .login-card { width: 100%; max-width: 380px; background: #fff; border-radius: 20px; padding: 32px 24px; margin-top: 32px; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25); }
+    .login-icon-circle { width: 56px; height: 56px; border-radius: 50%; background: #f0fdfa; display: flex; align-items: center; justify-content: center; margin: 0 auto 12px; }
     .login-icon-circle svg { width: 28px; height: 28px; color: var(--teal); }
     .login-card h2 { text-align: center; font-size: 18px; font-weight: 700; margin-bottom: 20px; }
     .input-group { position: relative; margin-bottom: 12px; }
-    .input-group input {
-      width: 100%; height: 48px; border: 2px solid var(--border);
-      border-radius: 12px; padding: 0 44px; font-size: 18px;
-      text-align: center; font-family: 'Cairo', sans-serif;
-      outline: none; transition: border-color 0.2s;
-    }
+    .input-group input { width: 100%; height: 48px; border: 2px solid var(--border); border-radius: 12px; padding: 0 44px; font-size: 18px; text-align: center; font-family: 'Cairo', sans-serif; outline: none; transition: border-color 0.2s; }
     .input-group input:focus { border-color: var(--teal); }
-    .toggle-eye {
-      position: absolute; left: 12px; top: 50%;
-      transform: translateY(-50%); background: none; border: none;
-      color: var(--text3); cursor: pointer;
-    }
+    .toggle-eye { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); background: none; border: none; color: var(--text3); cursor: pointer; }
     .login-error { color: var(--red); font-size: 13px; text-align: center; min-height: 18px; margin-bottom: 8px; }
     .login-credits { margin-top: 24px; text-align: center; color: rgba(255,255,255,0.7); font-size: 13px; }
     .login-credits .name { color: #fff; font-weight: 700; margin-top: 2px; }
     @keyframes shake { 0%,100%{transform:translateX(0)} 20%,60%{transform:translateX(-8px)} 40%,80%{transform:translateX(8px)} }
     .shake { animation: shake 0.5s; }
 
-    /* ========== BUTTONS ========== */
-    .btn {
-      width: 100%; height: 46px; border-radius: 12px;
-      border: none; font-family: 'Cairo', sans-serif;
-      font-size: 15px; font-weight: 600; cursor: pointer;
-      display: flex; align-items: center; justify-content: center; gap: 6px;
-      transition: opacity 0.2s, transform 0.1s;
-    }
+    .btn { width: 100%; height: 46px; border-radius: 12px; border: none; font-family: 'Cairo', sans-serif; font-size: 15px; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; transition: opacity 0.2s, transform 0.1s; text-decoration: none; }
     .btn:active { transform: scale(0.97); }
     .btn-primary { background: var(--teal); color: #fff; }
-    .btn-danger  { background: var(--red);  color: #fff; }
+    .btn-danger { background: var(--red); color: #fff; }
     .btn-outline { background: #f0fdfa; color: var(--teal); border: 1px solid var(--teal); }
-    .btn-wa      { background: var(--green-wa); color: #fff; }
+    .btn-wa { background: var(--green-wa); color: #fff; }
+    .btn-print { background: #334155; color: #fff; }
+    .btn-pdf { background: #dc2626; color: #fff; }
     .btn svg { width: 18px; height: 18px; flex-shrink: 0; }
 
-    /* ========== APP ========== */
-    .app { display: none; }
-    .app.active { display: block; }
-    .page { display: none; padding: 0 12px 100px; }
-    .page.active { display: block; }
+    .app { display: none; } .app.active { display: block; }
+    .page { display: none; padding: 0 12px 100px; } .page.active { display: block; }
 
-    /* ========== LOADING ========== */
-    .loading-overlay {
-      position: fixed; inset: 0; background: rgba(255,255,255,0.9);
-      display: flex; align-items: center; justify-content: center; z-index: 100;
-    }
+    .loading-overlay { position: fixed; inset: 0; background: rgba(255,255,255,0.9); display: flex; align-items: center; justify-content: center; z-index: 100; }
     .loading-overlay.hidden { display: none; }
-    .spinner {
-      width: 36px; height: 36px; border-radius: 50%;
-      border: 3px solid rgba(13,148,136,0.2);
-      border-top-color: var(--teal);
-      animation: spin 0.8s linear infinite;
-    }
+    .spinner { width: 36px; height: 36px; border-radius: 50%; border: 3px solid rgba(13,148,136,0.2); border-top-color: var(--teal); animation: spin 0.8s linear infinite; }
     @keyframes spin { to { transform: rotate(360deg); } }
 
-    /* ========== TOAST ========== */
-    .toast {
-      position: fixed; bottom: 90px; left: 50%; transform: translateX(-50%) translateY(20px);
-      background: #1e293b; color: #fff; padding: 10px 20px;
-      border-radius: 20px; font-size: 14px; opacity: 0;
-      transition: all 0.3s; z-index: 200; white-space: nowrap;
-      max-width: 90vw; text-align: center;
-    }
+    .toast { position: fixed; bottom: 90px; left: 50%; transform: translateX(-50%) translateY(20px); background: #1e293b; color: #fff; padding: 10px 20px; border-radius: 20px; font-size: 14px; opacity: 0; transition: all 0.3s; z-index: 200; white-space: nowrap; max-width: 90vw; text-align: center; }
     .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 
-    /* ========== HEADER ========== */
-    .header-banner {
-      background: linear-gradient(135deg, var(--teal), var(--teal-darker));
-      border-radius: 0 0 24px 24px; padding: 20px 16px 16px;
-      margin: 0 -12px 16px; color: #fff;
-    }
+    .header-banner { background: linear-gradient(135deg, var(--teal), var(--teal-darker)); border-radius: 0 0 24px 24px; padding: 20px 16px 16px; margin: 0 -12px 16px; color: #fff; }
     .header-banner .top { display: flex; align-items: center; gap: 12px; }
-    .header-icon {
-      width: 44px; height: 44px; border-radius: 12px;
-      background: rgba(255,255,255,0.2);
-      display: flex; align-items: center; justify-content: center;
-    }
+    .header-icon { width: 44px; height: 44px; border-radius: 12px; background: rgba(255,255,255,0.2); display: flex; align-items: center; justify-content: center; }
     .header-icon svg { width: 22px; height: 22px; stroke: #fff; }
     .header-banner h1 { font-size: 22px; font-weight: 800; }
     .header-banner .office { font-size: 12px; opacity: 0.8; }
     .stat-line { display: flex; align-items: center; gap: 6px; margin-top: 10px; font-size: 13px; opacity: 0.9; }
 
-    /* ========== STATS GRID ========== */
     .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 16px; }
-    .stat-card {
-      background: #fff; border-radius: var(--radius); padding: 12px;
-      box-shadow: 0 1px 4px rgba(0,0,0,0.07); cursor: pointer;
-    }
+    .stat-card { background: #fff; border-radius: var(--radius); padding: 12px; box-shadow: 0 1px 4px rgba(0,0,0,0.07); cursor: pointer; }
     .stat-card .top-row { display: flex; justify-content: space-between; align-items: center; }
     .stat-icon { width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; }
     .stat-icon svg { width: 16px; height: 16px; }
     .stat-card .value { font-size: 24px; font-weight: 800; color: var(--text); }
     .stat-card .label { font-size: 12px; color: var(--text2); margin-top: 6px; }
 
-    /* ========== SEARCH BOX ========== */
-    .search-box {
-      background: #fff; border-radius: var(--radius);
-      border: 1px solid var(--border); display: flex;
-      align-items: center; padding: 0 12px; margin-bottom: 10px;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-    }
+    .search-box { background: #fff; border-radius: var(--radius); border: 1px solid var(--border); display: flex; align-items: center; padding: 0 12px; margin-bottom: 10px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
     .search-icon { color: var(--text3); flex-shrink: 0; }
-    .search-box input {
-      flex: 1; height: 44px; border: none; outline: none;
-      font-family: 'Cairo', sans-serif; font-size: 14px;
-      padding: 0 10px; background: transparent; color: var(--text);
-    }
-    .voice-btn {
-      width: 36px; height: 36px; border-radius: 50%;
-      background: var(--teal); border: none; cursor: pointer;
-      display: flex; align-items: center; justify-content: center;
-      flex-shrink: 0; margin-left: 4px; transition: background 0.2s;
-    }
+    .search-box input { flex: 1; height: 44px; border: none; outline: none; font-family: 'Cairo', sans-serif; font-size: 14px; padding: 0 10px; background: transparent; color: var(--text); }
+    .voice-btn { width: 36px; height: 36px; border-radius: 50%; background: var(--teal); border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-left: 4px; transition: background 0.2s; }
     .voice-btn svg { width: 16px; height: 16px; stroke: #fff; fill: none; }
     .voice-btn.listening { background: var(--red); animation: pulse 1s infinite; }
     @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.6} }
-    .filter-btn {
-      width: 36px; height: 36px; border-radius: 8px;
-      background: #f0fdfa; border: none; color: var(--teal);
-      display: flex; align-items: center; justify-content: center; cursor: pointer;
-    }
+    .filter-btn { width: 36px; height: 36px; border-radius: 8px; background: #f0fdfa; border: none; color: var(--teal); display: flex; align-items: center; justify-content: center; cursor: pointer; }
 
-    /* ========== FILTERS ========== */
     .filter-pills { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 8px; margin-bottom: 8px; }
     .filter-pills::-webkit-scrollbar { display: none; }
-    .pill {
-      flex-shrink: 0; padding: 6px 14px; border-radius: 20px;
-      background: #fff; border: 1px solid var(--border);
-      font-size: 13px; cursor: pointer; font-family: 'Cairo', sans-serif;
-      color: var(--text2); white-space: nowrap;
-    }
+    .pill { flex-shrink: 0; padding: 6px 14px; border-radius: 20px; background: #fff; border: 1px solid var(--border); font-size: 13px; cursor: pointer; font-family: 'Cairo', sans-serif; color: var(--text2); white-space: nowrap; }
     .pill.active { background: var(--teal); color: #fff; border-color: var(--teal); }
-    .filter-section {
-      background: #fff; border-radius: var(--radius); padding: 12px;
-      margin-bottom: 10px; border: 1px solid var(--border);
-    }
+    .filter-section { background: #fff; border-radius: var(--radius); padding: 12px; margin-bottom: 10px; border: 1px solid var(--border); }
     .filter-section label { font-size: 13px; color: var(--text2); display: block; margin-bottom: 4px; }
-    .filter-section input, .filter-section select {
-      width: 100%; height: 38px; border: 1px solid var(--border);
-      border-radius: 8px; padding: 0 10px; font-family: 'Cairo', sans-serif;
-      font-size: 13px; outline: none; color: var(--text);
-    }
+    .filter-section input, .filter-section select { width: 100%; height: 38px; border: 1px solid var(--border); border-radius: 8px; padding: 0 10px; font-family: 'Cairo', sans-serif; font-size: 13px; outline: none; color: var(--text); }
     .hidden { display: none !important; }
 
-    /* ========== CASE CARDS ========== */
-    .case-card {
-      background: #fff; border-radius: var(--radius);
-      box-shadow: 0 1px 4px rgba(0,0,0,0.07); padding: 14px;
-      margin-bottom: 10px; cursor: pointer;
-      border-right: 3px solid transparent;
-      transition: box-shadow 0.2s;
-    }
+    .case-card { background: #fff; border-radius: var(--radius); box-shadow: 0 1px 4px rgba(0,0,0,0.07); padding: 14px; margin-bottom: 10px; cursor: pointer; border-right: 3px solid transparent; transition: box-shadow 0.2s; }
     .case-card:active { box-shadow: 0 2px 8px rgba(0,0,0,0.12); }
     .case-top { display: flex; justify-content: space-between; align-items: flex-start; }
     .case-info { flex: 1; min-width: 0; }
     .case-meta { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; flex-wrap: wrap; }
-    .case-number { font-size: 12px; color: var(--teal); font-weight: 700; background: #f0fdfa; padding: 2px 8px; border-radius: 6px; }
+    .case-number { font-size: 14px; color: var(--teal); font-weight: 800; background: #f0fdfa; padding: 2px 10px; border-radius: 6px; }
     .case-name { font-size: 15px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .case-sub { font-size: 12px; color: var(--text2); margin-top: 2px; }
     .case-extra { display: flex; gap: 8px; margin-top: 6px; flex-wrap: wrap; }
     .case-extra span { font-size: 11px; color: var(--text3); display: flex; align-items: center; gap: 3px; }
-    .status-badge {
-      font-size: 11px; color: #fff; padding: 2px 8px;
-      border-radius: 20px; font-weight: 600; white-space: nowrap;
-    }
-    
-    .wa-btn {
-      width: 36px; height: 36px; min-width: 36px; min-height: 36px; max-width: 36px; max-height: 36px;
-      border-radius: 50%;
-      background: var(--green-wa); display: flex;
-      align-items: center; justify-content: center; flex-shrink: 0;
-      overflow: hidden; cursor: pointer; border: none;
-      text-decoration: none;
-    }
-    .wa-btn svg { 
-      width: 18px !important; height: 18px !important; 
-      min-width: 18px; min-height: 18px; 
-      max-width: 18px; max-height: 18px;
-      fill: #fff; flex-shrink: 0; 
-    }
-    
-    .case-card svg, .detail-card svg { max-width: 20px; max-height: 20px; flex-shrink: 0; }
-    .share-row .btn svg, .actions-row .btn svg { width: 18px; height: 18px; flex-shrink: 0; }
+    .status-badge { font-size: 11px; color: #fff; padding: 2px 8px; border-radius: 20px; font-weight: 600; white-space: nowrap; }
 
-    /* ========== SECTION HEADER ========== */
+    .wa-btn { width: 36px; height: 36px; min-width: 36px; min-height: 36px; max-width: 36px; max-height: 36px; border-radius: 50%; background: var(--green-wa); display: flex; align-items: center; justify-content: center; flex-shrink: 0; overflow: hidden; cursor: pointer; border: none; text-decoration: none; }
+    .wa-btn svg { width: 18px !important; height: 18px !important; min-width: 18px; min-height: 18px; max-width: 18px; max-height: 18px; fill: #fff; flex-shrink: 0; }
+
     .section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
     .section-header h2 { display: flex; align-items: center; gap: 6px; font-size: 15px; font-weight: 700; }
     .section-header a { color: var(--teal); font-size: 13px; cursor: pointer; }
 
-    /* ========== PAGE TITLE ========== */
-    .page-title {
-      display: flex; align-items: center; gap: 10px;
-      font-size: 18px; font-weight: 800; padding: 16px 0 12px;
-    }
+    .page-title { display: flex; align-items: center; gap: 10px; font-size: 18px; font-weight: 800; padding: 16px 0 12px; }
     .page-title svg { width: 22px; height: 22px; stroke: var(--teal); }
-    .back-header {
-      display: flex; align-items: center; gap: 12px;
-      padding: 16px 0 12px;
-    }
-    .back-btn {
-      width: 36px; height: 36px; border-radius: 10px;
-      background: #f0fdfa; border: none; color: var(--teal);
-      display: flex; align-items: center; justify-content: center; cursor: pointer;
-    }
+    .back-header { display: flex; align-items: center; gap: 12px; padding: 16px 0 12px; flex-wrap: wrap; }
+    .back-btn { width: 36px; height: 36px; border-radius: 10px; background: #f0fdfa; border: none; color: var(--teal); display: flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0; }
     .back-btn svg { width: 20px; height: 20px; stroke: currentColor; }
 
-    /* ========== FORM ========== */
-    .form-card {
-      background: #fff; border-radius: var(--radius);
-      box-shadow: 0 1px 4px rgba(0,0,0,0.06); padding: 16px;
-      margin-bottom: 12px;
-    }
-    .form-section-title {
-      display: flex; align-items: center; gap: 10px;
-      font-size: 14px; font-weight: 700; color: var(--text);
-      margin-bottom: 14px; padding-bottom: 10px;
-      border-bottom: 1px solid var(--border);
-    }
-    .section-num {
-      width: 24px; height: 24px; border-radius: 50%;
-      background: var(--teal); color: #fff;
-      font-size: 13px; font-weight: 700;
-      display: flex; align-items: center; justify-content: center;
-    }
+    .form-card { background: #fff; border-radius: var(--radius); box-shadow: 0 1px 4px rgba(0,0,0,0.06); padding: 16px; margin-bottom: 12px; }
+    .form-section-title { display: flex; align-items: center; gap: 10px; font-size: 14px; font-weight: 700; color: var(--text); margin-bottom: 14px; padding-bottom: 10px; border-bottom: 1px solid var(--border); }
+    .section-num { width: 24px; height: 24px; border-radius: 50%; background: var(--teal); color: #fff; font-size: 13px; font-weight: 700; display: flex; align-items: center; justify-content: center; }
     .form-group { margin-bottom: 12px; }
     .form-group label { font-size: 13px; color: var(--text2); display: block; margin-bottom: 4px; font-weight: 600; }
-    .form-input, .form-select, .form-textarea {
-      width: 100%; border: 1.5px solid var(--border);
-      border-radius: 10px; padding: 10px 12px;
-      font-family: 'Cairo', sans-serif; font-size: 14px;
-      outline: none; color: var(--text); background: #fff;
-      transition: border-color 0.2s;
-    }
+    .form-input, .form-select, .form-textarea { width: 100%; border: 1.5px solid var(--border); border-radius: 10px; padding: 10px 12px; font-family: 'Cairo', sans-serif; font-size: 14px; outline: none; color: var(--text); background: #fff; transition: border-color 0.2s; }
     .form-input:focus, .form-select:focus, .form-textarea:focus { border-color: var(--teal); }
     .form-textarea { min-height: 80px; resize: none; }
 
-    /* Upload area */
-    .upload-area {
-      border: 2px dashed var(--border); border-radius: 12px;
-      padding: 24px; text-align: center; color: var(--text3);
-      cursor: pointer; font-size: 14px;
-      display: flex; flex-direction: column; align-items: center; gap: 8px;
-    }
+    .upload-area { border: 2px dashed var(--border); border-radius: 12px; padding: 24px; text-align: center; color: var(--text3); cursor: pointer; font-size: 14px; display: flex; flex-direction: column; align-items: center; gap: 8px; }
     .upload-area:hover { border-color: var(--teal); color: var(--teal); background: #f0fdfa; }
     .upload-area svg { width: 32px; height: 32px; }
-    .doc-item {
-      display: flex; align-items: center; gap: 10px;
-      padding: 10px; background: #f8fafc; border-radius: 10px;
-      margin-top: 8px;
-    }
+    .doc-item { display: flex; align-items: center; gap: 10px; padding: 10px; background: #f8fafc; border-radius: 10px; margin-top: 8px; }
     .doc-item svg { width: 18px; height: 18px; flex-shrink: 0; }
     .doc-item span { flex: 1; font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .doc-remove {
-      width: 28px; height: 28px; border-radius: 50%;
-      background: #fee2e2; border: none; color: var(--red);
-      display: flex; align-items: center; justify-content: center; cursor: pointer;
-    }
+    .doc-remove { width: 28px; height: 28px; border-radius: 50%; background: #fee2e2; border: none; color: var(--red); display: flex; align-items: center; justify-content: center; cursor: pointer; }
     .doc-remove svg { width: 14px; height: 14px; }
     .docs-count { font-size: 12px; color: var(--text3); margin-top: 6px; text-align: center; }
 
-    /* ========== DETAIL ========== */
-    .detail-card {
-      background: #fff; border-radius: var(--radius);
-      box-shadow: 0 1px 4px rgba(0,0,0,0.06); padding: 16px;
-      margin-bottom: 12px;
-    }
-    .detail-row {
-      display: flex; align-items: flex-start; gap: 8px;
-      padding: 8px 0; border-bottom: 1px solid var(--border);
-      font-size: 14px;
-    }
-    .detail-row svg { width: 16px; height: 16px; stroke: var(--teal); flex-shrink: 0; margin-top: 2px; }
-    .detail-row .lbl { color: var(--text2); flex-shrink: 0; }
+    .detail-card { background: #fff; border-radius: var(--radius); box-shadow: 0 1px 4px rgba(0,0,0,0.06); padding: 16px; margin-bottom: 12px; }
+    .detail-row { display: flex; align-items: flex-start; gap: 8px; padding: 8px 0; border-bottom: 1px solid var(--border); font-size: 14px; }
+    .detail-row:last-child { border-bottom: none; }
+    .detail-row svg { width: 16px; height: 16px; stroke: var(--teal); flex-shrink: 0; margin-top: 3px; }
+    .detail-row .lbl { color: var(--text2); flex-shrink: 0; min-width: 80px; }
     .detail-row .val { color: var(--text); font-weight: 600; flex: 1; word-break: break-word; }
-    .detail-sep { padding: 12px 0; border-bottom: 1px solid var(--border); }
     .detail-label { font-size: 12px; color: var(--text3); margin-bottom: 6px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
     .response-box { padding: 10px 14px; border-radius: 10px; font-size: 14px; line-height: 1.6; }
     .response-box.violet { background: #f5f3ff; color: #5b21b6; }
-    .response-box.red    { background: #fef2f2; color: #b91c1c; }
-    .actions-row { display: flex; gap: 10px; margin-top: 4px; }
-    .actions-row .btn { flex: 1; }
-    .share-row { display: flex; gap: 10px; margin-top: 10px; }
-    .share-row .btn { flex: 1; font-size: 14px; height: 42px; }
+    .response-box.red { background: #fef2f2; color: #b91c1c; }
+    .actions-row { display: flex; gap: 8px; margin-top: 4px; flex-wrap: wrap; }
+    .actions-row .btn { flex: 1; min-width: calc(50% - 8px); }
+    .actions-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 10px; }
+    .actions-grid .btn { width: 100%; }
 
-    /* ========== BOTTOM NAV ========== */
-    .bottom-nav {
-      position: fixed; bottom: 0; left: 0; right: 0;
-      background: #fff; border-top: 1px solid var(--border);
-      padding-bottom: var(--safe-bottom);
-      z-index: 50;
-    }
+    .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; background: #fff; border-top: 1px solid var(--border); padding-bottom: var(--safe-bottom); z-index: 50; }
     .nav-items { display: flex; align-items: flex-end; }
-    .nav-item {
-      flex: 1; display: flex; flex-direction: column; align-items: center;
-      padding: 8px 4px; border: none; background: none;
-      color: var(--text3); font-family: 'Cairo', sans-serif;
-      font-size: 10px; gap: 3px; cursor: pointer;
-      transition: color 0.2s;
-    }
+    .nav-item { flex: 1; display: flex; flex-direction: column; align-items: center; padding: 8px 4px; border: none; background: none; color: var(--text3); font-family: 'Cairo', sans-serif; font-size: 10px; gap: 3px; cursor: pointer; transition: color 0.2s; }
     .nav-item svg { width: 22px; height: 22px; stroke: currentColor; }
     .nav-item.active { color: var(--teal); }
-    .nav-add {
-      flex: 1; display: flex; flex-direction: column; align-items: center;
-      padding: 4px 4px 8px; border: none; background: none;
-      font-family: 'Cairo', sans-serif; font-size: 10px; gap: 3px;
-      cursor: pointer; color: var(--teal);
-    }
-    .nav-add-circle {
-      width: 50px; height: 50px; border-radius: 50%;
-      background: var(--teal); display: flex;
-      align-items: center; justify-content: center;
-      box-shadow: 0 4px 12px rgba(13,148,136,0.35);
-      margin-top: -16px;
-    }
+    .nav-add { flex: 1; display: flex; flex-direction: column; align-items: center; padding: 4px 4px 8px; border: none; background: none; font-family: 'Cairo', sans-serif; font-size: 10px; gap: 3px; cursor: pointer; color: var(--teal); }
+    .nav-add-circle { width: 50px; height: 50px; border-radius: 50%; background: var(--teal); display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 12px rgba(13,148,136,0.35); margin-top: -16px; }
     .nav-add-circle svg { width: 22px; height: 22px; stroke: #fff; }
 
-    /* ========== EMPTY STATE ========== */
-    .empty-state {
-      display: flex; flex-direction: column; align-items: center;
-      justify-content: center; padding: 48px 24px; color: var(--text3);
-      text-align: center;
-    }
+    .empty-state { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 48px 24px; color: var(--text3); text-align: center; }
     .empty-state svg { width: 56px; height: 56px; margin-bottom: 12px; }
     .empty-state p { font-size: 15px; margin-bottom: 4px; }
     .empty-state a { color: var(--teal); cursor: pointer; font-weight: 700; }
 
-    /* ========== SETTINGS ========== */
     .settings-stat { display: flex; gap: 10px; }
-    .settings-stat-item {
-      flex: 1; padding: 14px; border-radius: 12px; text-align: center;
-    }
+    .settings-stat-item { flex: 1; padding: 14px; border-radius: 12px; text-align: center; }
     .settings-stat-item .num { font-size: 28px; font-weight: 800; }
     .settings-stat-item .lbl { font-size: 12px; margin-top: 2px; }
-    .link-item {
-      display: flex; align-items: center; gap: 12px;
-      padding: 12px; text-decoration: none; color: var(--text);
-    }
-    .link-icon {
-      width: 40px; height: 40px; border-radius: 10px;
-      display: flex; align-items: center; justify-content: center; flex-shrink: 0;
-    }
+    .link-item { display: flex; align-items: center; gap: 12px; padding: 12px; text-decoration: none; color: var(--text); }
+    .link-icon { width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
     .link-icon svg { width: 20px; height: 20px; fill: #fff; }
     .link-text { font-size: 14px; font-weight: 700; }
-    .link-sub  { font-size: 12px; color: var(--text2); }
+    .link-sub { font-size: 12px; color: var(--text2); }
     .link-arrow { color: var(--text3); margin-right: auto; }
     .credits { text-align: center; color: var(--text3); font-size: 13px; padding: 20px 0; }
     .credits .name { color: var(--teal); font-weight: 700; }
 
-    /* ========== PRINT STYLES ========== */
+    .detail-number-badge { display: inline-flex; align-items: center; gap: 6px; background: linear-gradient(135deg, var(--teal), var(--teal-dark)); color: #fff; padding: 6px 16px; border-radius: 20px; font-size: 18px; font-weight: 800; margin-bottom: 8px; }
+
     @media print {
       body * { visibility: hidden; }
       #printArea, #printArea * { visibility: visible; }
-      #printArea {
-        position: fixed; top: 0; left: 0; right: 0;
-        background: #fff; padding: 24px; font-family: 'Cairo', sans-serif;
-        direction: rtl;
-      }
-      .no-print { display: none !important; }
-      .print-header { text-align: center; border-bottom: 2px solid #0d9488; padding-bottom: 16px; margin-bottom: 20px; }
-      .print-header h1 { font-size: 22px; color: #0d9488; }
-      .print-header p  { font-size: 13px; color: #64748b; }
+      #printArea { position: fixed; top: 0; left: 0; right: 0; background: #fff; padding: 24px; font-family: 'Cairo', sans-serif; direction: rtl; }
+      .print-header { text-align: center; border-bottom: 3px solid #0d9488; padding-bottom: 16px; margin-bottom: 20px; }
+      .print-header h1 { font-size: 24px; color: #0d9488; }
+      .print-header p { font-size: 13px; color: #64748b; }
+      .print-number { text-align: center; font-size: 32px; font-weight: 800; color: #0d9488; margin: 16px 0; }
       .print-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #e2e8f0; font-size: 14px; }
       .print-row .lbl { color: #64748b; }
       .print-row .val { font-weight: 700; color: #1e293b; }
       .print-section { margin-top: 16px; font-size: 13px; }
-      .print-section h3 { font-size: 14px; font-weight: 700; margin-bottom: 8px; color: #0d9488; }
+      .print-section h3 { font-size: 15px; font-weight: 700; margin-bottom: 8px; color: #0d9488; border-bottom: 1px solid #0d9488; padding-bottom: 4px; }
       .print-footer { margin-top: 32px; text-align: center; font-size: 12px; color: #94a3b8; border-top: 1px solid #e2e8f0; padding-top: 12px; }
     }
-
-    /* ========== PDF MODAL ========== */
-    .modal-overlay {
-      position: fixed; inset: 0; background: rgba(0,0,0,0.5);
-      z-index: 300; display: flex; align-items: flex-end;
-    }
-    .modal-overlay.hidden { display: none; }
-    .modal {
-      background: #fff; border-radius: 24px 24px 0 0;
-      padding: 24px; width: 100%; max-height: 80vh; overflow-y: auto;
-    }
-    .modal h3 { font-size: 16px; font-weight: 700; margin-bottom: 16px; }
   </style>
 </head>
 <body>
 
-  <!-- ========== LOGIN ========== -->
   <div id="loginScreen" class="login-screen">
-    <div class="login-logo">
-      <svg viewBox="0 0 24 24"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
-    </div>
+    <div class="login-logo"><svg viewBox="0 0 24 24"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg></div>
     <h1 class="login-title">El Ashry Pro</h1>
     <p class="login-sub">نظام إدارة الطلبات الطبية</p>
     <p class="login-office">مكتب الحاج أحمد الحديدي - عضو مجلس النواب</p>
-
     <div class="login-card" id="loginCard">
-      <div class="login-icon-circle">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-      </div>
+      <div class="login-icon-circle"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></div>
       <h2>تسجيل الدخول</h2>
       <form id="loginForm">
         <div class="input-group">
           <input type="password" id="passwordInput" placeholder="أدخل كلمة المرور" autocomplete="off">
-          <button type="button" class="toggle-eye" id="toggleEye">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-          </button>
+          <button type="button" class="toggle-eye" id="toggleEye"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button>
         </div>
         <p class="login-error" id="loginError"></p>
         <button type="submit" class="btn btn-primary">دخول</button>
       </form>
     </div>
-
-    <div class="login-credits">
-      <p>برمجة وتطوير بكل ❤️</p>
-      <p class="name">المهندس محمد حماد</p>
-    </div>
+    <div class="login-credits"><p>برمجة وتطوير بكل ❤️</p><p class="name">المهندس محمد حماد</p></div>
   </div>
 
-  <!-- ========== LOADING ========== -->
-  <div id="loading" class="loading-overlay hidden">
-    <div class="spinner"></div>
-  </div>
-
-  <!-- ========== TOAST ========== -->
+  <div id="loading" class="loading-overlay hidden"><div class="spinner"></div></div>
   <div id="toast" class="toast"></div>
-
-  <!-- ========== PRINT AREA ========== -->
   <div id="printArea" style="display:none"></div>
 
-  <!-- ========== APP ========== -->
   <div id="app" class="app">
-
     <!-- PAGE: Home -->
     <div id="pageHome" class="page active">
       <div class="header-banner">
         <div class="top">
-          <div class="header-icon">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
-          </div>
-          <div>
-            <h1>El Ashry Pro</h1>
-            <p class="office">مكتب الحاج أحمد الحديدي</p>
-          </div>
+          <div class="header-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg></div>
+          <div><h1>El Ashry Pro</h1><p class="office">مكتب الحاج أحمد الحديدي</p></div>
         </div>
-        <div class="stat-line">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/></svg>
-          <span id="homeTotalLine">0 طلب مسجل في النظام</span>
-        </div>
+        <div class="stat-line"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/></svg><span id="homeTotalLine">0 طلب مسجل</span></div>
       </div>
-
-      <div class="stats-grid" id="statsGrid">
-        <div class="stat-card" onclick="filterByStatus('all')">
-          <div class="top-row"><div class="stat-icon" style="background:#f0fdfa"><svg viewBox="0 0 24 24" fill="none" stroke="#0d9488" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></div><span class="value" id="statTotal">0</span></div>
-          <span class="label">إجمالي الطلبات</span>
-        </div>
-        <div class="stat-card" onclick="filterByStatus('executed')">
-          <div class="top-row"><div class="stat-icon" style="background:#ecfdf5"><svg viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg></div><span class="value" id="statExecuted">0</span></div>
-          <span class="label">تم التنفيذ</span>
-        </div>
-        <div class="stat-card" onclick="filterByStatus('under_review')">
-          <div class="top-row"><div class="stat-icon" style="background:#fffbeb"><svg viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div><span class="value" id="statReview">0</span></div>
-          <span class="label">تحت المراجعة</span>
-        </div>
-        <div class="stat-card" onclick="filterByStatus('under_procedure')">
-          <div class="top-row"><div class="stat-icon" style="background:#f0f9ff"><svg viewBox="0 0 24 24" fill="none" stroke="#0ea5e9" stroke-width="2"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg></div><span class="value" id="statProcedure">0</span></div>
-          <span class="label">تحت الإجراء</span>
-        </div>
-        <div class="stat-card" onclick="filterByStatus('responded')">
-          <div class="top-row"><div class="stat-icon" style="background:#f5f3ff"><svg viewBox="0 0 24 24" fill="none" stroke="#8b5cf6" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></div><span class="value" id="statResponded">0</span></div>
-          <span class="label">تم الرد</span>
-        </div>
-        <div class="stat-card" onclick="filterByStatus('rejected')">
-          <div class="top-row"><div class="stat-icon" style="background:#fef2f2"><svg viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg></div><span class="value" id="statRejected">0</span></div>
-          <span class="label">مرفوض</span>
-        </div>
+      <div class="stats-grid">
+        <div class="stat-card" onclick="filterByStatus('all')"><div class="top-row"><div class="stat-icon" style="background:#f0fdfa"><svg viewBox="0 0 24 24" fill="none" stroke="#0d9488" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></div><span class="value" id="statTotal">0</span></div><span class="label">إجمالي الطلبات</span></div>
+        <div class="stat-card" onclick="filterByStatus('executed')"><div class="top-row"><div class="stat-icon" style="background:#ecfdf5"><svg viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg></div><span class="value" id="statExecuted">0</span></div><span class="label">تم التنفيذ</span></div>
+        <div class="stat-card" onclick="filterByStatus('under_review')"><div class="top-row"><div class="stat-icon" style="background:#fffbeb"><svg viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div><span class="value" id="statReview">0</span></div><span class="label">تحت المراجعة</span></div>
+        <div class="stat-card" onclick="filterByStatus('under_procedure')"><div class="top-row"><div class="stat-icon" style="background:#f0f9ff"><svg viewBox="0 0 24 24" fill="none" stroke="#0ea5e9" stroke-width="2"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg></div><span class="value" id="statProcedure">0</span></div><span class="label">تحت الإجراء</span></div>
+        <div class="stat-card" onclick="filterByStatus('responded')"><div class="top-row"><div class="stat-icon" style="background:#f5f3ff"><svg viewBox="0 0 24 24" fill="none" stroke="#8b5cf6" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></div><span class="value" id="statResponded">0</span></div><span class="label">تم الرد</span></div>
+        <div class="stat-card" onclick="filterByStatus('rejected')"><div class="top-row"><div class="stat-icon" style="background:#fef2f2"><svg viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg></div><span class="value" id="statRejected">0</span></div><span class="label">مرفوض</span></div>
       </div>
-
-      <div class="section-header">
-        <h2>
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#0d9488" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
-          أحدث الطلبات
-        </h2>
-        <a onclick="switchTab('cases')">عرض الكل</a>
-      </div>
+      <div class="section-header"><h2><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#0d9488" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>أحدث الطلبات</h2><a onclick="switchTab('cases')">عرض الكل</a></div>
       <div id="recentCases"></div>
     </div>
 
     <!-- PAGE: Cases -->
     <div id="pageCases" class="page">
-      <div class="page-title">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-        الطلبات
-      </div>
-
+      <div class="page-title"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>الطلبات</div>
       <div class="search-box">
         <svg class="search-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
         <input type="text" id="casesSearch" placeholder="بحث بالاسم أو الرقم أو البلد..." oninput="renderCases()">
-        <button class="voice-btn" id="casesVoiceBtn" title="بحث صوتي" onclick="startVoiceSearch('casesSearch', renderCases)">
-          <svg viewBox="0 0 24 24" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
-        </button>
-        <button class="filter-btn" id="casesFilterBtn" onclick="toggleCasesFilter()" style="margin-right:4px">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
-        </button>
+        <button class="voice-btn" id="casesVoiceBtn" onclick="startVoiceSearch('casesSearch', renderCases)"><svg viewBox="0 0 24 24" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg></button>
+        <button class="filter-btn" onclick="toggleCasesFilter()" style="margin-right:4px"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg></button>
       </div>
-
       <div class="filter-pills" id="casesStatusPills">
         <button class="pill active" onclick="setCaseFilter('all',this)">الكل</button>
         <button class="pill" onclick="setCaseFilter('executed',this)">تم التنفيذ</button>
@@ -589,168 +270,75 @@
         <button class="pill" onclick="setCaseFilter('responded',this)">تم الرد</button>
         <button class="pill" onclick="setCaseFilter('rejected',this)">مرفوض</button>
       </div>
-
       <div class="filter-section hidden" id="casesAdvancedFilter">
-        <div class="form-group" style="margin-bottom:8px">
-          <label>🏠 فلتر بالبلد</label>
-          <input type="text" id="filterCountry" placeholder="مثال: مصر" oninput="renderCases()">
-        </div>
-        <div class="form-group" style="margin-bottom:0">
-          <label>🏥 فلتر بالمستشفى</label>
-          <input type="text" id="filterHospital" placeholder="اسم المستشفى" oninput="renderCases()">
-        </div>
+        <div class="form-group" style="margin-bottom:8px"><label>🏠 فلتر بالبلد</label><input type="text" id="filterCountry" placeholder="مثال: مصر" oninput="renderCases()"></div>
+        <div class="form-group" style="margin-bottom:0"><label>🏥 فلتر بالمستشفى</label><input type="text" id="filterHospital" placeholder="اسم المستشفى" oninput="renderCases()"></div>
       </div>
-
       <div id="casesList"></div>
     </div>
 
     <!-- PAGE: Add/Edit -->
     <div id="pageAdd" class="page">
       <div class="back-header">
-        <button class="back-btn" onclick="cancelForm()">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="transform:rotate(180deg)"><polyline points="15 18 9 12 15 6"/></svg>
-        </button>
+        <button class="back-btn" onclick="cancelForm()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="transform:rotate(180deg)"><polyline points="15 18 9 12 15 6"/></svg></button>
         <h1 style="font-size:18px;font-weight:700" id="formTitle">طلب جديد</h1>
       </div>
-
       <div class="form-card">
         <div class="form-section-title"><div class="section-num">1</div>بيانات الشخص</div>
-        <div class="form-group">
-          <label>الاسم الكامل *</label>
-          <input class="form-input" id="fName" placeholder="أدخل الاسم الكامل">
-        </div>
-        <div class="form-group">
-          <label>رقم الهاتف</label>
-          <input class="form-input" id="fPhone" placeholder="01xxxxxxxxx" dir="ltr">
-        </div>
-        <div class="form-group">
-          <label>الرقم القومي</label>
-          <input class="form-input" id="fNationalId" placeholder="الرقم القومي" dir="ltr">
-        </div>
+        <div class="form-group"><label>الاسم الكامل *</label><input class="form-input" id="fName" placeholder="أدخل الاسم الكامل"></div>
+        <div class="form-group"><label>رقم الهاتف</label><input class="form-input" id="fPhone" placeholder="01xxxxxxxxx" dir="ltr"></div>
+        <div class="form-group"><label>الرقم القومي</label><input class="form-input" id="fNationalId" placeholder="الرقم القومي" dir="ltr"></div>
       </div>
-
       <div class="form-card">
         <div class="form-section-title"><div class="section-num">2</div>بيانات الموقع والمستشفى</div>
-        <div class="form-group">
-          <label>🏠 البلد</label>
-          <input class="form-input" id="fCountry" placeholder="اكتب اسم البلد">
-        </div>
-        <div class="form-group">
-          <label>🏥 اسم المستشفى</label>
-          <input class="form-input" id="fHospital" placeholder="اسم المستشفى">
-        </div>
+        <div class="form-group"><label>🏠 البلد</label><input class="form-input" id="fCountry" placeholder="اكتب اسم البلد"></div>
+        <div class="form-group"><label>🏥 اسم المستشفى</label><input class="form-input" id="fHospital" placeholder="اسم المستشفى"></div>
       </div>
-
       <div class="form-card">
         <div class="form-section-title"><div class="section-num">3</div>التواريخ</div>
-        <div class="form-group">
-          <label>📅 تاريخ تقديم الطلب</label>
-          <input class="form-input" id="fSubmissionDate" type="date">
-        </div>
-        <div class="form-group">
-          <label>📆 تاريخ الرد <span style="color:var(--text3);font-weight:400">(اختياري)</span></label>
-          <input class="form-input" id="fResponseDate" type="date">
-        </div>
+        <div class="form-group"><label>📅 تاريخ تقديم الطلب</label><input class="form-input" id="fSubmissionDate" type="date"></div>
+        <div class="form-group"><label>📆 تاريخ الرد <span style="color:var(--text3);font-weight:400">(اختياري)</span></label><input class="form-input" id="fResponseDate" type="date"></div>
       </div>
-
       <div class="form-card">
         <div class="form-section-title"><div class="section-num">4</div>تفاصيل الخدمة</div>
-        <div class="form-group">
-          <label>نوع الخدمة *</label>
-          <select class="form-select" id="fService">
-            <option value="">اختر نوع الخدمة</option>
-            <option>علاج على نفقة الدولة</option>
-            <option>تكاليف العلاج</option>
-            <option>عملية جراحية</option>
-            <option>انتداب ممرض</option>
-            <option>تحويل مستشفى</option>
-            <option>أجهزة طبية</option>
-            <option>خدمة أخرى</option>
-          </select>
-        </div>
-        <div class="form-group">
-          <label>الوصف</label>
-          <textarea class="form-textarea" id="fDesc" placeholder="تفاصيل الحالة..."></textarea>
-        </div>
+        <div class="form-group"><label>نوع الخدمة *</label><select class="form-select" id="fService"><option value="">اختر نوع الخدمة</option><option>علاج على نفقة الدولة</option><option>تكاليف العلاج</option><option>عملية جراحية</option><option>انتداب ممرض</option><option>تحويل مستشفى</option><option>أجهزة طبية</option><option>خدمة أخرى</option></select></div>
+        <div class="form-group"><label>الوصف</label><textarea class="form-textarea" id="fDesc" placeholder="تفاصيل الحالة..."></textarea></div>
       </div>
-
       <div class="form-card">
         <div class="form-section-title"><div class="section-num">5</div>حالة الطلب</div>
-        <div class="form-group">
-          <label>الحالة</label>
-          <select class="form-select" id="fStatus" onchange="toggleStatusFields()">
-            <option value="under_review">تحت المراجعة</option>
-            <option value="under_procedure">تحت الإجراء</option>
-            <option value="executed">تم التنفيذ</option>
-            <option value="responded">تم الرد</option>
-            <option value="rejected">طلب مرفوض</option>
-          </select>
-        </div>
-        <div class="form-group hidden" id="responseGroup">
-          <label>الرد</label>
-          <textarea class="form-textarea" id="fResponse" placeholder="اكتب الرد..."></textarea>
-        </div>
-        <div class="form-group hidden" id="rejectionGroup">
-          <label>سبب الرفض</label>
-          <textarea class="form-textarea" id="fRejection" placeholder="سبب الرفض..."></textarea>
-        </div>
+        <div class="form-group"><label>الحالة</label><select class="form-select" id="fStatus" onchange="toggleStatusFields()"><option value="under_review">تحت المراجعة</option><option value="under_procedure">تحت الإجراء</option><option value="executed">تم التنفيذ</option><option value="responded">تم الرد</option><option value="rejected">طلب مرفوض</option></select></div>
+        <div class="form-group hidden" id="responseGroup"><label>الرد</label><textarea class="form-textarea" id="fResponse" placeholder="اكتب الرد..."></textarea></div>
+        <div class="form-group hidden" id="rejectionGroup"><label>سبب الرفض</label><textarea class="form-textarea" id="fRejection" placeholder="سبب الرفض..."></textarea></div>
       </div>
-
       <div class="form-card">
         <div class="form-section-title"><div class="section-num">6</div>المستندات</div>
-        <div class="upload-area" onclick="document.getElementById('fileInput').click()">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-          اضغط لرفع مستندات
-          <small style="color:var(--text3)">PDF, JPG, PNG, DOCX - حتى 15 ملف</small>
-        </div>
+        <div class="upload-area" onclick="document.getElementById('fileInput').click()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>اضغط لرفع مستندات<small style="color:var(--text3)">PDF, JPG, PNG, DOCX - حتى 15 ملف</small></div>
         <input type="file" id="fileInput" multiple accept="image/*,.pdf,.doc,.docx" style="display:none" onchange="handleFileUpload(this.files)">
         <div id="docsList"></div>
         <div class="docs-count" id="docsCount"></div>
       </div>
-
-      <button class="btn btn-primary" style="font-size:18px;height:50px;margin-bottom:12px" onclick="saveCase()" id="saveBtn">
-        حفظ الطلب
-      </button>
+      <button class="btn btn-primary" style="font-size:18px;height:50px;margin-bottom:12px" onclick="saveCase()" id="saveBtn">حفظ الطلب</button>
     </div>
 
     <!-- PAGE: Detail -->
     <div id="pageDetail" class="page">
       <div class="back-header">
-        <button class="back-btn" onclick="switchTab('cases')">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="transform:rotate(180deg)"><polyline points="15 18 9 12 15 6"/></svg>
-        </button>
+        <button class="back-btn" onclick="switchTab('cases')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="transform:rotate(180deg)"><polyline points="15 18 9 12 15 6"/></svg></button>
         <h1 style="font-size:18px;font-weight:700">تفاصيل الطلب</h1>
-        <div style="margin-right:auto;display:flex;gap:8px">
-          <button class="back-btn" onclick="printCase()" title="طباعة">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
-          </button>
-          <button class="back-btn" onclick="exportPDF()" title="تصدير PDF">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
-          </button>
-        </div>
       </div>
       <div id="detailContent"></div>
     </div>
 
     <!-- PAGE: Search -->
     <div id="pageSearch" class="page">
-      <div class="page-title">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-        البحث الذكي
-      </div>
+      <div class="page-title"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>البحث الذكي</div>
       <div class="search-box">
         <svg class="search-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
         <input type="text" id="globalSearch" placeholder="بحث بالاسم أو الرقم أو البلد..." oninput="renderSearch()">
-        <button class="voice-btn" id="searchVoiceBtn" title="بحث صوتي" onclick="startVoiceSearch('globalSearch', renderSearch)">
-          <svg viewBox="0 0 24 24" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
-        </button>
-        <button class="filter-btn" id="searchFilterBtn" onclick="toggleSearchFilter()" style="margin-right:4px">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
-        </button>
+        <button class="voice-btn" id="searchVoiceBtn" onclick="startVoiceSearch('globalSearch', renderSearch)"><svg viewBox="0 0 24 24" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg></button>
+        <button class="filter-btn" onclick="toggleSearchFilter()" style="margin-right:4px"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg></button>
       </div>
-      <p style="font-size:12px;color:var(--text3);margin-bottom:8px;text-align:center">
-        🔍 بحث ذكي يتجاهل الفرق في الهمزات والتشكيل
-      </p>
+      <p style="font-size:12px;color:var(--text3);margin-bottom:8px;text-align:center">🔍 بحث ذكي يتجاهل الفرق في الهمزات والتشكيل</p>
       <div class="filter-pills hidden" id="searchFilters">
         <button class="pill active" onclick="setSearchFilter('all',this)">الكل</button>
         <button class="pill" onclick="setSearchFilter('executed',this)">تم التنفيذ</button>
@@ -759,807 +347,388 @@
         <button class="pill" onclick="setSearchFilter('responded',this)">تم الرد</button>
         <button class="pill" onclick="setSearchFilter('rejected',this)">مرفوض</button>
       </div>
-      <div id="searchResults">
-        <div class="empty-state">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-          <p>ابحث عن طلب</p>
-          <p style="font-size:12px;color:#cbd5e1;margin-top:4px">أدخل اسم الشخص أو رقم الطلب أو الرقم القومي</p>
-        </div>
-      </div>
+      <div id="searchResults"><div class="empty-state"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><p>ابحث عن طلب</p><p style="font-size:12px;color:#cbd5e1;margin-top:4px">أدخل اسم الشخص أو رقم الطلب أو الرقم القومي</p></div></div>
     </div>
 
     <!-- PAGE: Settings -->
     <div id="pageSettings" class="page">
-      <div class="page-title">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
-        الإعدادات
-      </div>
-
-      <div class="form-card">
-        <div class="form-section-title">إحصائيات</div>
-        <div class="settings-stat">
-          <div class="settings-stat-item" style="background:#f0fdfa">
-            <div class="num" style="color:var(--teal)" id="settTotal">0</div>
-            <div class="lbl" style="color:var(--teal)">إجمالي الطلبات</div>
-          </div>
-          <div class="settings-stat-item" style="background:#fffbeb">
-            <div class="num" style="color:var(--amber)" id="settDocs">0</div>
-            <div class="lbl" style="color:var(--amber)">المستندات</div>
-          </div>
-        </div>
-      </div>
-
-      <div class="form-card">
-        <div class="form-section-title">معلومات التطبيق</div>
-        <div style="font-size:13px;color:var(--text2);display:flex;flex-direction:column;gap:6px">
-          <div style="display:flex;justify-content:space-between"><span>الإصدار</span><strong style="color:var(--text)">2.0.0</strong></div>
-          <div style="display:flex;justify-content:space-between"><span>المكتب</span><strong style="color:var(--text)">الحاج أحمد الحديدي</strong></div>
-          <div style="display:flex;justify-content:space-between"><span>القطاع</span><strong style="color:var(--text)">الصحة</strong></div>
-        </div>
-      </div>
-
-      <div class="form-card" style="padding:8px">
-        <a href="https://wa.me/201279934755" target="_blank" class="link-item" style="background:#f0fdf4;border-radius:10px">
-          <div class="link-icon" style="background:#16a34a"><svg width="20" height="20" viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg></div>
-          <div>
-            <div class="link-text">واتساب المطور</div>
-            <div class="link-sub">المهندس محمد حماد</div>
-          </div>
-          <svg class="link-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
-        </a>
-      </div>
-
+      <div class="page-title"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>الإعدادات</div>
+      <div class="form-card"><div class="form-section-title">إحصائيات</div><div class="settings-stat"><div class="settings-stat-item" style="background:#f0fdfa"><div class="num" style="color:var(--teal)" id="settTotal">0</div><div class="lbl" style="color:var(--teal)">إجمالي الطلبات</div></div><div class="settings-stat-item" style="background:#fffbeb"><div class="num" style="color:var(--amber)" id="settDocs">0</div><div class="lbl" style="color:var(--amber)">المستندات</div></div></div></div>
+      <div class="form-card"><div class="form-section-title">معلومات التطبيق</div><div style="font-size:13px;color:var(--text2);display:flex;flex-direction:column;gap:6px"><div style="display:flex;justify-content:space-between"><span>الإصدار</span><strong style="color:var(--text)">2.0.0</strong></div><div style="display:flex;justify-content:space-between"><span>المكتب</span><strong style="color:var(--text)">الحاج أحمد الحديدي</strong></div><div style="display:flex;justify-content:space-between"><span>القطاع</span><strong style="color:var(--text)">الصحة</strong></div></div></div>
+      <div class="form-card" style="padding:8px"><a href="https://wa.me/201279934755" target="_blank" class="link-item" style="background:#f0fdf4;border-radius:10px"><div class="link-icon" style="background:#16a34a"><svg width="20" height="20" viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg></div><div><div class="link-text">واتساب المطور</div><div class="link-sub">المهندس محمد حماد</div></div><svg class="link-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg></a></div>
       <button class="btn btn-danger" style="margin-top:12px" onclick="logout()">تسجيل الخروج</button>
       <div class="credits"><p>برمجة وتطوير بكل ❤️ حب</p><p class="name">المهندس محمد حماد</p></div>
     </div>
 
-    <!-- Bottom Navigation -->
-    <nav class="bottom-nav">
-      <div class="nav-items">
-        <button class="nav-item active" onclick="switchTab('home')" data-tab="home">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
-          <span>الرئيسية</span>
-        </button>
-        <button class="nav-item" onclick="switchTab('cases')" data-tab="cases">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-          <span>الطلبات</span>
-        </button>
-        <button class="nav-add" onclick="openNewCase()">
-          <div class="nav-add-circle">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-          </div>
-          <span>إضافة</span>
-        </button>
-        <button class="nav-item" onclick="switchTab('search')" data-tab="search">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-          <span>بحث</span>
-        </button>
-        <button class="nav-item" onclick="switchTab('settings')" data-tab="settings">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
-          <span>المزيد</span>
-        </button>
-      </div>
-    </nav>
+    <nav class="bottom-nav"><div class="nav-items">
+      <button class="nav-item active" onclick="switchTab('home')" data-tab="home"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg><span>الرئيسية</span></button>
+      <button class="nav-item" onclick="switchTab('cases')" data-tab="cases"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg><span>الطلبات</span></button>
+      <button class="nav-add" onclick="openNewCase()"><div class="nav-add-circle"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></div><span>إضافة</span></button>
+      <button class="nav-item" onclick="switchTab('search')" data-tab="search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><span>بحث</span></button>
+      <button class="nav-item" onclick="switchTab('settings')" data-tab="settings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg><span>المزيد</span></button>
+    </div></nav>
   </div>
 
-  <!-- ========== JAVASCRIPT ========== -->
   <script>
-    // ===== Firebase Config =====
     const firebaseConfig = {
-      apiKey:            "AIzaSyCXu2rJGT81e9BBkJXzzVyEyXWaYcrK2NM",
-      authDomain:        "el-ashry.firebaseapp.com",
-      databaseURL:       "https://el-ashry-default-rtdb.firebaseio.com",
-      projectId:         "el-ashry",
-      storageBucket:     "el-ashry.firebasestorage.app",
+      apiKey: "AIzaSyCXu2rJGT81e9BBkJXzzVyEyXWaYcrK2NM",
+      authDomain: "el-ashry.firebaseapp.com",
+      databaseURL: "https://el-ashry-default-rtdb.firebaseio.com",
+      projectId: "el-ashry",
+      storageBucket: "el-ashry.firebasestorage.app",
       messagingSenderId: "169155515034",
-      appId:             "1:169155515034:web:d74c9f027efd216a228523"
+      appId: "1:169155515034:web:d74c9f027efd216a228523"
     };
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
 
-    // ===== Constants =====
     const PASSWORD = "521988";
     const MAX_DOCS = 15;
+    const STATUS_LABELS = { executed:"تم التنفيذ", under_review:"تحت المراجعة", under_procedure:"تحت الإجراء", responded:"تم الرد", rejected:"طلب مرفوض" };
+    const STATUS_COLORS = { executed:"#10b981", under_review:"#f59e0b", under_procedure:"#0ea5e9", responded:"#8b5cf6", rejected:"#ef4444" };
 
-    const STATUS_LABELS = {
-      executed:        "تم التنفيذ",
-      under_review:    "تحت المراجعة",
-      under_procedure: "تحت الإجراء",
-      responded:       "تم الرد",
-      rejected:        "طلب مرفوض"
-    };
-    const STATUS_COLORS = {
-      executed:        "#10b981",
-      under_review:    "#f59e0b",
-      under_procedure: "#0ea5e9",
-      responded:       "#8b5cf6",
-      rejected:        "#ef4444"
-    };
+    let cases = [], currentTab = "home", editingCaseId = null, uploadedDocs = [];
+    let caseFilterStatus = "all", searchFilterStatus = "all", currentDetailCase = null;
 
-    // ===== State =====
-    let cases           = [];
-    let currentTab      = "home";
-    let editingCaseId   = null;
-    let uploadedDocs    = [];
-    let caseFilterStatus    = "all";
-    let searchFilterStatus  = "all";
-    let currentDetailCase   = null;
-    let nextCaseNumber      = 1;
-
-    // ===== WhatsApp SVG =====
     const waSvg = `<svg width="18" height="18" viewBox="0 0 24 24" style="width:18px;height:18px;min-width:18px;min-height:18px;max-width:18px;max-height:18px;flex-shrink:0"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>`;
 
-    // ===== Toast =====
-    function showToast(msg, duration = 2500) {
-      const t = document.getElementById('toast');
-      t.textContent = msg;
-      t.classList.add('show');
-      setTimeout(() => t.classList.remove('show'), duration);
-    }
-
-    // ===== Arabic Normalizer =====
-    function normalizeArabic(text) {
-      if (!text) return "";
-      return text
-        .replace(/[أإآ]/g, "ا")
-        .replace(/ؤ/g, "و")
-        .replace(/ئ/g, "ي")
-        .replace(/ى/g, "ي")
-        .replace(/ة/g, "ه")
-        .replace(/[\u064B-\u065F]/g, "")
-        .replace(/\s+/g, " ")
-        .trim()
-        .toLowerCase();
-    }
-
-    function arabicMatch(text, query) {
-      if (!text || !query) return false;
-      return normalizeArabic(text).includes(normalizeArabic(query));
-    }
-
-    // ===== WhatsApp Phone Formatter =====
-    function formatPhoneForWA(phone) {
-      if (!phone) return null;
-      let p = phone.replace(/[\s\-().+]/g, "");
-      if (p.startsWith("0")) p = "20" + p.substring(1);
-      if (!p.startsWith("20")) p = "20" + p;
-      return p;
-    }
-
-    function whatsAppCallLink(phone) {
-      const p = formatPhoneForWA(phone);
-      return p ? `https://wa.me/${p}` : null;
-    }
+    function showToast(msg, dur=2500) { const t=document.getElementById('toast'); t.textContent=msg; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'), dur); }
+    function normalizeArabic(t) { if(!t)return""; return t.replace(/[أإآ]/g,"ا").replace(/ؤ/g,"و").replace(/ئ/g,"ي").replace(/ى/g,"ي").replace(/ة/g,"ه").replace(/[\u064B-\u065F]/g,"").replace(/\s+/g," ").trim().toLowerCase(); }
+    function arabicMatch(t,q) { if(!t||!q)return false; return normalizeArabic(t).includes(normalizeArabic(q)); }
+    function formatPhoneForWA(p) { if(!p)return null; let r=p.replace(/[\s\-().+]/g,""); if(r.startsWith("0"))r="20"+r.substring(1); if(!r.startsWith("20"))r="20"+r; return r; }
+    function waLink(phone) { const p=formatPhoneForWA(phone); return p?`https://wa.me/${p}`:null; }
 
     // ===== Login =====
-    const loginForm = document.getElementById('loginForm');
-    const passwordInput = document.getElementById('passwordInput');
-    const toggleEye = document.getElementById('toggleEye');
-    const loginError = document.getElementById('loginError');
-    const loginCard = document.getElementById('loginCard');
-    const loginScreen = document.getElementById('loginScreen');
-    const app = document.getElementById('app');
-    const loading = document.getElementById('loading');
+    const loginForm=document.getElementById('loginForm'), passwordInput=document.getElementById('passwordInput');
+    const toggleEye=document.getElementById('toggleEye'), loginError=document.getElementById('loginError');
+    const loginCard=document.getElementById('loginCard'), loginScreen=document.getElementById('loginScreen');
+    const appEl=document.getElementById('app'), loadingEl=document.getElementById('loading');
 
-    toggleEye.addEventListener('click', () => {
-      const type = passwordInput.type === 'password' ? 'text' : 'password';
-      passwordInput.type = type;
-    });
-
-    loginForm.addEventListener('submit', (e) => {
+    toggleEye.addEventListener('click',()=>{ passwordInput.type=passwordInput.type==='password'?'text':'password'; });
+    loginForm.addEventListener('submit',(e)=>{
       e.preventDefault();
-      const pass = passwordInput.value.trim();
-      if (pass === PASSWORD) {
-        localStorage.setItem('elAshryAuth', 'true');
-        loginScreen.style.display = 'none';
-        app.classList.add('active');
-        initApp();
-      } else {
-        loginError.textContent = 'كلمة المرور غير صحيحة';
-        loginCard.classList.add('shake');
-        setTimeout(() => loginCard.classList.remove('shake'), 500);
-      }
+      if(passwordInput.value.trim()===PASSWORD){ localStorage.setItem('elAshryAuth','true'); loginScreen.style.display='none'; appEl.classList.add('active'); initApp(); }
+      else{ loginError.textContent='كلمة المرور غير صحيحة'; loginCard.classList.add('shake'); setTimeout(()=>loginCard.classList.remove('shake'),500); }
     });
+    if(localStorage.getItem('elAshryAuth')==='true'){ loginScreen.style.display='none'; appEl.classList.add('active'); initApp(); }
+    function logout(){ localStorage.removeItem('elAshryAuth'); location.reload(); }
 
-    if (localStorage.getItem('elAshryAuth') === 'true') {
-      loginScreen.style.display = 'none';
-      app.classList.add('active');
-      initApp();
-    }
-
-    function logout() {
-      localStorage.removeItem('elAshryAuth');
-      location.reload();
-    }
-
-    // ===== Tab Navigation =====
     function switchTab(tab) {
-      currentTab = tab;
-      document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-      document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-      
-      const pageMap = { home: 'pageHome', cases: 'pageCases', add: 'pageAdd', detail: 'pageDetail', search: 'pageSearch', settings: 'pageSettings' };
-      const page = document.getElementById(pageMap[tab]);
-      if (page) page.classList.add('active');
-      
-      const navBtn = document.querySelector(`.nav-item[data-tab="${tab}"]`);
-      if (navBtn) navBtn.classList.add('active');
-
-      window.scrollTo(0, 0);
-      
-      if (tab === 'cases') renderCases();
+      currentTab=tab;
+      document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+      document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+      const map={home:'pageHome',cases:'pageCases',add:'pageAdd',detail:'pageDetail',search:'pageSearch',settings:'pageSettings'};
+      const pg=document.getElementById(map[tab]); if(pg)pg.classList.add('active');
+      const nb=document.querySelector(`.nav-item[data-tab="${tab}"]`); if(nb)nb.classList.add('active');
+      window.scrollTo(0,0);
+      if(tab==='cases')renderCases();
     }
 
-    // ===== Init App =====
     function initApp() {
       showLoading(true);
-      db.ref('cases').on('value', (snapshot) => {
-        const data = snapshot.val() || {};
-        cases = Object.entries(data).map(([id, val]) => ({ id, ...val }));
-        cases.sort((a, b) => (b.submissionDate || '').localeCompare(a.submissionDate || ''));
-        
-        // حساب الرقم التسلسلي التالي (أكبر رقم + 1)
-        calculateNextCaseNumber();
-        
-        updateStats();
-        renderRecentCases();
-        renderCases();
-        renderSearch();
+      db.ref('cases').on('value',(snap)=>{
+        const data=snap.val()||{};
+        cases=Object.entries(data).map(([id,val])=>({id,...val}));
+        cases.sort((a,b)=>(b.caseNumber||0)-(a.caseNumber||0));
+        updateStats(); renderRecentCases(); renderCases(); renderSearch();
         showLoading(false);
       });
     }
+    function showLoading(s){ loadingEl.classList.toggle('hidden',!s); }
 
-    // ===== حساب الرقم التسلسلي التالي =====
-    function calculateNextCaseNumber() {
-      let maxNum = 0;
-      cases.forEach(c => {
-        const num = parseInt(c.caseNumber);
-        if (!isNaN(num) && num > maxNum) {
-          maxNum = num;
-        }
-      });
-      nextCaseNumber = maxNum + 1;
-    }
-
-    function showLoading(show) {
-      loading.classList.toggle('hidden', !show);
-    }
-
-    // ===== Stats =====
     function updateStats() {
-      const total = cases.length;
-      const executed = cases.filter(c => c.status === 'executed').length;
-      const review = cases.filter(c => c.status === 'under_review').length;
-      const procedure = cases.filter(c => c.status === 'under_procedure').length;
-      const responded = cases.filter(c => c.status === 'responded').length;
-      const rejected = cases.filter(c => c.status === 'rejected').length;
-
-      document.getElementById('statTotal').textContent = total;
-      document.getElementById('statExecuted').textContent = executed;
-      document.getElementById('statReview').textContent = review;
-      document.getElementById('statProcedure').textContent = procedure;
-      document.getElementById('statResponded').textContent = responded;
-      document.getElementById('statRejected').textContent = rejected;
-
-      document.getElementById('homeTotalLine').textContent = `${total} طلب مسجل في النظام`;
-      document.getElementById('settTotal').textContent = total;
-      
-      let totalDocs = 0;
-      cases.forEach(c => { if (c.documents) totalDocs += Object.keys(c.documents).length; });
-      document.getElementById('settDocs').textContent = totalDocs;
+      const t=cases.length;
+      document.getElementById('statTotal').textContent=t;
+      document.getElementById('statExecuted').textContent=cases.filter(c=>c.status==='executed').length;
+      document.getElementById('statReview').textContent=cases.filter(c=>c.status==='under_review').length;
+      document.getElementById('statProcedure').textContent=cases.filter(c=>c.status==='under_procedure').length;
+      document.getElementById('statResponded').textContent=cases.filter(c=>c.status==='responded').length;
+      document.getElementById('statRejected').textContent=cases.filter(c=>c.status==='rejected').length;
+      document.getElementById('homeTotalLine').textContent=`${t} طلب مسجل`;
+      document.getElementById('settTotal').textContent=t;
+      let td=0; cases.forEach(c=>{if(c.documents)td+=Object.keys(c.documents).length;}); document.getElementById('settDocs').textContent=td;
     }
 
-    // ===== Case Card HTML =====
     function caseCardHTML(c) {
-      const waLink = whatsAppCallLink(c.phone);
-      const statusColor = STATUS_COLORS[c.status] || '#94a3b8';
-      const statusLabel = STATUS_LABELS[c.status] || c.status;
-      
-      return `
-        <div class="case-card" style="border-right-color:${statusColor}" onclick="openDetail('${c.id}')">
-          <div class="case-top">
-            <div class="case-info">
-              <div class="case-meta">
-                <span class="case-number">#${c.caseNumber || '-'}</span>
-                <span class="status-badge" style="background:${statusColor}">${statusLabel}</span>
-              </div>
-              <div class="case-name">${c.name || 'بدون اسم'}</div>
-              <div class="case-sub">${c.service || ''}</div>
-              <div class="case-extra">
-                ${c.country ? `<span>🏠 ${c.country}</span>` : ''}
-                ${c.phone ? `<span>📱 ${c.phone}</span>` : ''}
-                ${c.submissionDate ? `<span>📅 ${c.submissionDate}</span>` : ''}
-              </div>
-            </div>
-            ${waLink ? `<a href="${waLink}" target="_blank" class="wa-btn" onclick="event.stopPropagation()">${waSvg}</a>` : ''}
-          </div>
-        </div>
-      `;
+      const wl=waLink(c.phone), sc=STATUS_COLORS[c.status]||'#94a3b8', sl=STATUS_LABELS[c.status]||c.status;
+      return `<div class="case-card" style="border-right-color:${sc}" onclick="openDetail('${c.id}')"><div class="case-top"><div class="case-info"><div class="case-meta"><span class="case-number">${c.caseNumber||'-'}</span><span class="status-badge" style="background:${sc}">${sl}</span></div><div class="case-name">${c.name||'بدون اسم'}</div><div class="case-sub">${c.service||''}</div><div class="case-extra">${c.country?`<span>🏠 ${c.country}</span>`:''}${c.phone?`<span>📱 ${c.phone}</span>`:''}${c.submissionDate?`<span>📅 ${c.submissionDate}</span>`:''}</div></div>${wl?`<a href="${wl}" target="_blank" class="wa-btn" onclick="event.stopPropagation()">${waSvg}</a>`:''}</div></div>`;
     }
 
-    // ===== Recent Cases =====
     function renderRecentCases() {
-      const container = document.getElementById('recentCases');
-      const recent = cases.slice(0, 5);
-      if (recent.length === 0) {
-        container.innerHTML = `<div class="empty-state"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg><p>لا توجد طلبات بعد</p><a onclick="openNewCase()">إضافة طلب جديد</a></div>`;
-        return;
-      }
-      container.innerHTML = recent.map(c => caseCardHTML(c)).join('');
+      const c=document.getElementById('recentCases'), r=cases.slice(0,5);
+      if(!r.length){ c.innerHTML=`<div class="empty-state"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg><p>لا توجد طلبات بعد</p><a onclick="openNewCase()">إضافة طلب جديد</a></div>`; return; }
+      c.innerHTML=r.map(x=>caseCardHTML(x)).join('');
     }
 
-    // ===== Cases List =====
     function renderCases() {
-      const search = (document.getElementById('casesSearch')?.value || '').trim();
-      const countryFilter = (document.getElementById('filterCountry')?.value || '').trim();
-      const hospitalFilter = (document.getElementById('filterHospital')?.value || '').trim();
-      
-      let filtered = cases;
-      
-      if (caseFilterStatus !== 'all') {
-        filtered = filtered.filter(c => c.status === caseFilterStatus);
-      }
-      if (search) {
-        filtered = filtered.filter(c => 
-          arabicMatch(c.name, search) || 
-          arabicMatch(c.caseNumber?.toString(), search) || 
-          arabicMatch(c.country, search) ||
-          arabicMatch(c.nationalId, search) ||
-          arabicMatch(c.phone, search)
-        );
-      }
-      if (countryFilter) {
-        filtered = filtered.filter(c => arabicMatch(c.country, countryFilter));
-      }
-      if (hospitalFilter) {
-        filtered = filtered.filter(c => arabicMatch(c.hospital, hospitalFilter));
-      }
-
-      const container = document.getElementById('casesList');
-      if (filtered.length === 0) {
-        container.innerHTML = `<div class="empty-state"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg><p>لا توجد نتائج</p></div>`;
-        return;
-      }
-      container.innerHTML = filtered.map(c => caseCardHTML(c)).join('');
+      const s=(document.getElementById('casesSearch')?.value||'').trim();
+      const cf=(document.getElementById('filterCountry')?.value||'').trim();
+      const hf=(document.getElementById('filterHospital')?.value||'').trim();
+      let f=cases;
+      if(caseFilterStatus!=='all')f=f.filter(c=>c.status===caseFilterStatus);
+      if(s)f=f.filter(c=>arabicMatch(c.name,s)||arabicMatch(c.caseNumber?.toString(),s)||arabicMatch(c.country,s)||arabicMatch(c.nationalId,s)||arabicMatch(c.phone,s));
+      if(cf)f=f.filter(c=>arabicMatch(c.country,cf));
+      if(hf)f=f.filter(c=>arabicMatch(c.hospital,hf));
+      const ct=document.getElementById('casesList');
+      if(!f.length){ ct.innerHTML=`<div class="empty-state"><p>لا توجد نتائج</p></div>`; return; }
+      ct.innerHTML=f.map(x=>caseCardHTML(x)).join('');
     }
 
-    function setCaseFilter(status, btn) {
-      caseFilterStatus = status;
-      document.querySelectorAll('#casesStatusPills .pill').forEach(p => p.classList.remove('active'));
-      btn.classList.add('active');
-      renderCases();
-    }
+    function setCaseFilter(s,b){ caseFilterStatus=s; document.querySelectorAll('#casesStatusPills .pill').forEach(p=>p.classList.remove('active')); b.classList.add('active'); renderCases(); }
+    function filterByStatus(s){ caseFilterStatus=s; switchTab('cases'); document.querySelectorAll('#casesStatusPills .pill').forEach(p=>{ p.classList.toggle('active',p.textContent.trim()===(STATUS_LABELS[s]||'الكل')); }); renderCases(); }
+    function toggleCasesFilter(){ document.getElementById('casesAdvancedFilter').classList.toggle('hidden'); }
 
-    function filterByStatus(status) {
-      caseFilterStatus = status;
-      switchTab('cases');
-      document.querySelectorAll('#casesStatusPills .pill').forEach(p => {
-        p.classList.toggle('active', p.textContent.trim() === (STATUS_LABELS[status] || 'الكل'));
-      });
-      renderCases();
-    }
-
-    function toggleCasesFilter() {
-      document.getElementById('casesAdvancedFilter').classList.toggle('hidden');
-    }
-
-    // ===== Search =====
     function renderSearch() {
-      const query = (document.getElementById('globalSearch')?.value || '').trim();
-      const container = document.getElementById('searchResults');
-      
-      if (!query) {
-        container.innerHTML = `<div class="empty-state"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><p>ابحث عن طلب</p><p style="font-size:12px;color:#cbd5e1;margin-top:4px">أدخل اسم الشخص أو رقم الطلب أو الرقم القومي</p></div>`;
-        return;
-      }
-
-      let filtered = cases.filter(c => 
-        arabicMatch(c.name, query) || 
-        arabicMatch(c.caseNumber?.toString(), query) || 
-        arabicMatch(c.country, query) ||
-        arabicMatch(c.nationalId, query) ||
-        arabicMatch(c.phone, query) ||
-        arabicMatch(c.hospital, query) ||
-        arabicMatch(c.service, query)
-      );
-
-      if (searchFilterStatus !== 'all') {
-        filtered = filtered.filter(c => c.status === searchFilterStatus);
-      }
-
-      if (filtered.length === 0) {
-        container.innerHTML = `<div class="empty-state"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><p>لا توجد نتائج لـ "${query}"</p></div>`;
-        return;
-      }
-      container.innerHTML = filtered.map(c => caseCardHTML(c)).join('');
+      const q=(document.getElementById('globalSearch')?.value||'').trim(), ct=document.getElementById('searchResults');
+      if(!q){ ct.innerHTML=`<div class="empty-state"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><p>ابحث عن طلب</p></div>`; return; }
+      let f=cases.filter(c=>arabicMatch(c.name,q)||arabicMatch(c.caseNumber?.toString(),q)||arabicMatch(c.country,q)||arabicMatch(c.nationalId,q)||arabicMatch(c.phone,q)||arabicMatch(c.hospital,q)||arabicMatch(c.service,q));
+      if(searchFilterStatus!=='all')f=f.filter(c=>c.status===searchFilterStatus);
+      if(!f.length){ ct.innerHTML=`<div class="empty-state"><p>لا توجد نتائج لـ "${q}"</p></div>`; return; }
+      ct.innerHTML=f.map(x=>caseCardHTML(x)).join('');
     }
+    function setSearchFilter(s,b){ searchFilterStatus=s; document.querySelectorAll('#searchFilters .pill').forEach(p=>p.classList.remove('active')); b.classList.add('active'); renderSearch(); }
+    function toggleSearchFilter(){ document.getElementById('searchFilters').classList.toggle('hidden'); }
 
-    function setSearchFilter(status, btn) {
-      searchFilterStatus = status;
-      document.querySelectorAll('#searchFilters .pill').forEach(p => p.classList.remove('active'));
-      btn.classList.add('active');
-      renderSearch();
-    }
-
-    function toggleSearchFilter() {
-      document.getElementById('searchFilters').classList.toggle('hidden');
-    }
-
-    // ===== Voice Search - البحث الصوتي الفوري =====
     function startVoiceSearch(inputId, callback) {
-      if (!('webkitSpeechRecognition' in window || 'SpeechRecognition' in window)) {
-        showToast('البحث الصوتي غير مدعوم في هذا المتصفح');
-        return;
-      }
-      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-      const recognition = new SpeechRecognition();
-      recognition.lang = 'ar-EG';
-      recognition.interimResults = true; // تفعيل النتائج المؤقتة للبحث الفوري
-      
-      const btn = document.getElementById(inputId === 'globalSearch' ? 'searchVoiceBtn' : 'casesVoiceBtn');
+      if(!('webkitSpeechRecognition' in window||'SpeechRecognition' in window)){ showToast('البحث الصوتي غير مدعوم'); return; }
+      const SR=window.SpeechRecognition||window.webkitSpeechRecognition, rec=new SR();
+      rec.lang='ar-EG'; rec.interimResults=true;
+      const btn=document.getElementById(inputId==='globalSearch'?'searchVoiceBtn':'casesVoiceBtn');
       btn.classList.add('listening');
-      
-      // البحث الفوري أثناء التحدث (نتائج مؤقتة)
-      recognition.onresult = (event) => {
-        let transcript = '';
-        for (let i = event.resultIndex; i < event.results.length; i++) {
-          transcript += event.results[i][0].transcript;
-        }
-        // وضع النص مباشرة في مربع البحث
-        document.getElementById(inputId).value = transcript;
-        // تفعيل البحث فوراً
-        callback();
-      };
-      
-      recognition.onerror = () => {
-        btn.classList.remove('listening');
-        showToast('حدث خطأ في التعرف الصوتي');
-      };
-      
-      recognition.onend = () => {
-        btn.classList.remove('listening');
-      };
-      
-      recognition.start();
-      showToast('🎤 تحدث الآن...');
+      rec.onresult=(e)=>{ let t=''; for(let i=e.resultIndex;i<e.results.length;i++)t+=e.results[i][0].transcript; document.getElementById(inputId).value=t; callback(); };
+      rec.onerror=()=>{ btn.classList.remove('listening'); showToast('خطأ في التعرف الصوتي'); };
+      rec.onend=()=>btn.classList.remove('listening');
+      rec.start(); showToast('🎤 تحدث الآن...');
     }
 
-    // ===== New Case =====
     function openNewCase() {
-      editingCaseId = null;
-      uploadedDocs = [];
-      document.getElementById('formTitle').textContent = 'طلب جديد';
-      document.getElementById('fName').value = '';
-      document.getElementById('fPhone').value = '';
-      document.getElementById('fNationalId').value = '';
-      document.getElementById('fCountry').value = '';
-      document.getElementById('fHospital').value = '';
-      document.getElementById('fSubmissionDate').value = new Date().toISOString().split('T')[0];
-      document.getElementById('fResponseDate').value = '';
-      document.getElementById('fService').value = '';
-      document.getElementById('fDesc').value = '';
-      document.getElementById('fStatus').value = 'under_review';
-      document.getElementById('fResponse').value = '';
-      document.getElementById('fRejection').value = '';
-      document.getElementById('docsList').innerHTML = '';
-      document.getElementById('docsCount').textContent = '';
+      editingCaseId=null; uploadedDocs=[];
+      document.getElementById('formTitle').textContent='طلب جديد';
+      ['fName','fPhone','fNationalId','fCountry','fHospital','fDesc','fResponse','fRejection'].forEach(id=>document.getElementById(id).value='');
+      document.getElementById('fSubmissionDate').value=new Date().toISOString().split('T')[0];
+      document.getElementById('fResponseDate').value='';
+      document.getElementById('fService').value='';
+      document.getElementById('fStatus').value='under_review';
+      document.getElementById('docsList').innerHTML='';
+      document.getElementById('docsCount').textContent='';
       document.getElementById('responseGroup').classList.add('hidden');
       document.getElementById('rejectionGroup').classList.add('hidden');
       switchTab('add');
     }
+    function cancelForm(){ switchTab(currentTab==='add'?'cases':currentTab); }
+    function toggleStatusFields(){ const s=document.getElementById('fStatus').value; document.getElementById('responseGroup').classList.toggle('hidden',s!=='responded'); document.getElementById('rejectionGroup').classList.toggle('hidden',s!=='rejected'); }
 
-    function cancelForm() {
-      switchTab(currentTab === 'add' ? 'cases' : currentTab);
-    }
-
-    function toggleStatusFields() {
-      const status = document.getElementById('fStatus').value;
-      document.getElementById('responseGroup').classList.toggle('hidden', status !== 'responded');
-      document.getElementById('rejectionGroup').classList.toggle('hidden', status !== 'rejected');
-    }
-
-    // ===== File Upload =====
     function handleFileUpload(files) {
-      if (uploadedDocs.length + files.length > MAX_DOCS) {
-        showToast(`الحد الأقصى ${MAX_DOCS} ملفات`);
-        return;
-      }
-      
-      Array.from(files).forEach(file => {
-        if (file.size > 5 * 1024 * 1024) {
-          showToast(`الملف ${file.name} أكبر من 5MB`);
-          return;
-        }
-        const reader = new FileReader();
-        reader.onload = (e) => {
-          uploadedDocs.push({
-            name: file.name,
-            type: file.type,
-            data: e.target.result,
-            size: file.size
-          });
-          renderDocs();
-        };
-        reader.readAsDataURL(file);
-      });
+      if(uploadedDocs.length+files.length>MAX_DOCS){ showToast(`الحد ${MAX_DOCS} ملفات`); return; }
+      Array.from(files).forEach(f=>{ if(f.size>5*1024*1024){ showToast(`${f.name} أكبر من 5MB`); return; } const r=new FileReader(); r.onload=(e)=>{ uploadedDocs.push({name:f.name,type:f.type,data:e.target.result,size:f.size}); renderDocs(); }; r.readAsDataURL(f); });
     }
-
     function renderDocs() {
-      const container = document.getElementById('docsList');
-      container.innerHTML = uploadedDocs.map((doc, i) => `
-        <div class="doc-item">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--teal)" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-          <span>${doc.name}</span>
-          <button class="doc-remove" onclick="removeDoc(${i})">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-          </button>
-        </div>
-      `).join('');
-      document.getElementById('docsCount').textContent = uploadedDocs.length > 0 ? `${uploadedDocs.length} ملف مرفق` : '';
+      document.getElementById('docsList').innerHTML=uploadedDocs.map((d,i)=>`<div class="doc-item"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--teal)" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg><span>${d.name}</span><button class="doc-remove" onclick="removeDoc(${i})"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div>`).join('');
+      document.getElementById('docsCount').textContent=uploadedDocs.length?`${uploadedDocs.length} ملف مرفق`:'';
     }
+    function removeDoc(i){ uploadedDocs.splice(i,1); renderDocs(); }
 
-    function removeDoc(index) {
-      uploadedDocs.splice(index, 1);
-      renderDocs();
-    }
-
-    // ===== Save Case =====
+    // ===== حفظ الطلب مع ترقيم تسلسلي فريد عبر Firebase Transaction =====
     function saveCase() {
-      const name = document.getElementById('fName').value.trim();
-      const phone = document.getElementById('fPhone').value.trim();
-      const nationalId = document.getElementById('fNationalId').value.trim();
-      const country = document.getElementById('fCountry').value.trim();
-      const hospital = document.getElementById('fHospital').value.trim();
-      const submissionDate = document.getElementById('fSubmissionDate').value;
-      const responseDate = document.getElementById('fResponseDate').value;
-      const service = document.getElementById('fService').value;
-      const desc = document.getElementById('fDesc').value.trim();
-      const status = document.getElementById('fStatus').value;
-      const response = document.getElementById('fResponse').value.trim();
-      const rejection = document.getElementById('fRejection').value.trim();
-
-      if (!name) { showToast('الرجاء إدخال الاسم الكامل'); return; }
-      if (!service) { showToast('الرجاء اختيار نوع الخدمة'); return; }
-
+      const name=document.getElementById('fName').value.trim();
+      const phone=document.getElementById('fPhone').value.trim();
+      const nationalId=document.getElementById('fNationalId').value.trim();
+      const country=document.getElementById('fCountry').value.trim();
+      const hospital=document.getElementById('fHospital').value.trim();
+      const submissionDate=document.getElementById('fSubmissionDate').value;
+      const responseDate=document.getElementById('fResponseDate').value;
+      const service=document.getElementById('fService').value;
+      const desc=document.getElementById('fDesc').value.trim();
+      const status=document.getElementById('fStatus').value;
+      const response=document.getElementById('fResponse').value.trim();
+      const rejection=document.getElementById('fRejection').value.trim();
+      if(!name){ showToast('الرجاء إدخال الاسم'); return; }
+      if(!service){ showToast('الرجاء اختيار نوع الخدمة'); return; }
       showLoading(true);
 
-      const caseData = {
-        name, phone, nationalId, country, hospital,
-        submissionDate, responseDate, service, desc, status,
-        updatedAt: new Date().toISOString()
-      };
+      const caseData = { name, phone, nationalId, country, hospital, submissionDate, responseDate, service, desc, status, updatedAt: new Date().toISOString() };
+      if(status==='responded') caseData.response=response;
+      if(status==='rejected') caseData.rejection=rejection;
 
-      if (status === 'responded') caseData.response = response;
-      if (status === 'rejected') caseData.rejection = rejection;
-
-      if (editingCaseId) {
-        // Update
-        db.ref('cases/' + editingCaseId).update(caseData).then(() => {
-          if (uploadedDocs.length > 0) {
-            const docsRef = db.ref('cases/' + editingCaseId + '/documents');
-            uploadedDocs.forEach(doc => {
-              docsRef.push({ name: doc.name, type: doc.type, data: doc.data, size: doc.size });
-            });
-          }
-          showLoading(false);
-          showToast('تم تحديث الطلب بنجاح ✅');
-          switchTab('cases');
-        }).catch(err => {
-          showLoading(false);
-          showToast('حدث خطأ أثناء الحفظ');
-          console.error(err);
-        });
+      if(editingCaseId) {
+        db.ref('cases/'+editingCaseId).update(caseData).then(()=>{
+          if(uploadedDocs.length){ const dr=db.ref('cases/'+editingCaseId+'/documents'); uploadedDocs.forEach(d=>dr.push({name:d.name,type:d.type,data:d.data,size:d.size})); }
+          showLoading(false); showToast('تم التحديث بنجاح ✅'); switchTab('cases');
+        }).catch(err=>{ showLoading(false); showToast('خطأ في الحفظ'); console.error(err); });
       } else {
-        // Create - ترقيم تسلسلي من 1
-        caseData.createdAt = new Date().toISOString();
-        caseData.caseNumber = nextCaseNumber;
-        
-        const newRef = db.ref('cases').push();
-        newRef.set(caseData).then(() => {
-          if (uploadedDocs.length > 0) {
-            const docsRef = db.ref('cases/' + newRef.key + '/documents');
-            uploadedDocs.forEach(doc => {
-              docsRef.push({ name: doc.name, type: doc.type, data: doc.data, size: doc.size });
-            });
-          }
-          showLoading(false);
-          showToast(`تم حفظ الطلب رقم ${nextCaseNumber} بنجاح ✅`);
-          switchTab('cases');
-        }).catch(err => {
-          showLoading(false);
-          showToast('حدث خطأ أثناء الحفظ');
-          console.error(err);
-        });
+        // استخدام Transaction لضمان رقم فريد
+        const counterRef = db.ref('counters/caseNumber');
+        counterRef.transaction(current => {
+          return (current || 0) + 1;
+        }).then(result => {
+          const newNum = result.snapshot.val();
+          caseData.caseNumber = newNum;
+          caseData.createdAt = new Date().toISOString();
+          const newRef = db.ref('cases').push();
+          newRef.set(caseData).then(()=>{
+            if(uploadedDocs.length){ const dr=db.ref('cases/'+newRef.key+'/documents'); uploadedDocs.forEach(d=>dr.push({name:d.name,type:d.type,data:d.data,size:d.size})); }
+            showLoading(false); showToast(`تم حفظ الطلب رقم ${newNum} بنجاح ✅`); switchTab('cases');
+          }).catch(err=>{ showLoading(false); showToast('خطأ في الحفظ'); console.error(err); });
+        }).catch(err=>{ showLoading(false); showToast('خطأ في توليد الرقم'); console.error(err); });
       }
     }
 
-    // ===== Detail =====
+    // ===== تفاصيل الطلب الكاملة =====
     function openDetail(id) {
-      const c = cases.find(x => x.id === id);
-      if (!c) return;
-      currentDetailCase = c;
-      
-      const statusColor = STATUS_COLORS[c.status] || '#94a3b8';
-      const statusLabel = STATUS_LABELS[c.status] || c.status;
-      const waLink = whatsAppCallLink(c.phone);
+      const c=cases.find(x=>x.id===id); if(!c)return;
+      currentDetailCase=c;
+      const sc=STATUS_COLORS[c.status]||'#94a3b8', sl=STATUS_LABELS[c.status]||c.status;
 
       let html = `
-        <div class="detail-card">
-          <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
-            <span class="status-badge" style="background:${statusColor};font-size:13px;padding:4px 12px">${statusLabel}</span>
-            <span class="case-number" style="font-size:13px">#${c.caseNumber || '-'}</span>
-          </div>
-          <div class="detail-row"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--teal)" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg><span class="lbl">الاسم:</span><span class="val">${c.name || '-'}</span></div>
-          ${c.phone ? `<div class="detail-row"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--teal)" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg><span class="lbl">الهاتف:</span><span class="val" dir="ltr">${c.phone}</span></div>` : ''}
-          ${c.nationalId ? `<div class="detail-row"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--teal)" stroke-width="2"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg><span class="lbl">الرقم القومي:</span><span class="val" dir="ltr">${c.nationalId}</span></div>` : ''}
-          ${c.country ? `<div class="detail-row"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--teal)" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg><span class="lbl">البلد:</span><span class="val">${c.country}</span></div>` : ''}
-          ${c.hospital ? `<div class="detail-row"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--teal)" stroke-width="2"><path d="M3 21h18"/><path d="M5 21V7l8-4v18"/><path d="M19 21V11l-6-4"/><path d="M9 9h1"/><path d="M9 13h1"/><path d="M9 17h1"/></svg><span class="lbl">المستشفى:</span><span class="val">${c.hospital}</span></div>` : ''}
-          <div class="detail-row"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--teal)" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg><span class="lbl">الخدمة:</span><span class="val">${c.service || '-'}</span></div>
-          <div class="detail-row"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--teal)" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg><span class="lbl">تاريخ الطلب:</span><span class="val">${c.submissionDate || '-'}</span></div>
-          ${c.responseDate ? `<div class="detail-row"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--teal)" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg><span class="lbl">تاريخ الرد:</span><span class="val">${c.responseDate}</span></div>` : ''}
+        <div class="detail-card" style="text-align:center;padding:24px 16px">
+          <div class="detail-number-badge">${c.caseNumber||'-'}</div>
+          <div style="margin-top:6px"><span class="status-badge" style="background:${sc};font-size:13px;padding:4px 14px">${sl}</span></div>
         </div>
-      `;
 
-      if (c.desc) {
-        html += `<div class="detail-card"><div class="detail-label">الوصف</div><p style="font-size:14px;line-height:1.7">${c.desc}</p></div>`;
-      }
+        <div class="detail-card">
+          <div class="detail-label">👤 بيانات الشخص</div>
+          <div class="detail-row"><svg viewBox="0 0 24 24" fill="none" stroke="var(--teal)" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg><span class="lbl">الاسم</span><span class="val">${c.name||'-'}</span></div>
+          <div class="detail-row"><svg viewBox="0 0 24 24" fill="none" stroke="var(--teal)" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg><span class="lbl">الهاتف</span><span class="val" dir="ltr">${c.phone||'-'}</span></div>
+          <div class="detail-row"><svg viewBox="0 0 24 24" fill="none" stroke="var(--teal)" stroke-width="2"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg><span class="lbl">الرقم القومي</span><span class="val" dir="ltr">${c.nationalId||'-'}</span></div>
+        </div>
 
-      if (c.status === 'responded' && c.response) {
-        html += `<div class="detail-card"><div class="detail-label">الرد</div><div class="response-box violet">${c.response}</div></div>`;
-      }
-      if (c.status === 'rejected' && c.rejection) {
-        html += `<div class="detail-card"><div class="detail-label">سبب الرفض</div><div class="response-box red">${c.rejection}</div></div>`;
-      }
+        <div class="detail-card">
+          <div class="detail-label">📍 بيانات الموقع</div>
+          <div class="detail-row"><svg viewBox="0 0 24 24" fill="none" stroke="var(--teal)" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg><span class="lbl">البلد</span><span class="val">${c.country||'-'}</span></div>
+          <div class="detail-row"><svg viewBox="0 0 24 24" fill="none" stroke="var(--teal)" stroke-width="2"><path d="M3 21h18"/><path d="M5 21V7l8-4v18"/><path d="M19 21V11l-6-4"/></svg><span class="lbl">المستشفى</span><span class="val">${c.hospital||'-'}</span></div>
+        </div>
 
-      const docs = c.documents ? Object.entries(c.documents) : [];
-      if (docs.length > 0) {
-        html += `<div class="detail-card"><div class="detail-label">المستندات (${docs.length})</div>`;
-        docs.forEach(([docId, doc]) => {
-          html += `
-            <div class="doc-item" style="cursor:pointer" onclick="window.open('${doc.data}', '_blank')">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--teal)" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-              <span>${doc.name || 'مستند'}</span>
-            </div>
-          `;
-        });
+        <div class="detail-card">
+          <div class="detail-label">📋 تفاصيل الخدمة</div>
+          <div class="detail-row"><svg viewBox="0 0 24 24" fill="none" stroke="var(--teal)" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg><span class="lbl">نوع الخدمة</span><span class="val">${c.service||'-'}</span></div>
+          <div class="detail-row"><svg viewBox="0 0 24 24" fill="none" stroke="var(--teal)" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg><span class="lbl">تاريخ الطلب</span><span class="val">${c.submissionDate||'-'}</span></div>
+          ${c.responseDate?`<div class="detail-row"><svg viewBox="0 0 24 24" fill="none" stroke="var(--teal)" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg><span class="lbl">تاريخ الرد</span><span class="val">${c.responseDate}</span></div>`:''}
+        </div>`;
+
+      if(c.desc) html += `<div class="detail-card"><div class="detail-label">📝 الوصف</div><p style="font-size:14px;line-height:1.8;background:#f8fafc;padding:12px;border-radius:10px">${c.desc}</p></div>`;
+      if(c.status==='responded'&&c.response) html += `<div class="detail-card"><div class="detail-label">✅ الرد</div><div class="response-box violet">${c.response}</div></div>`;
+      if(c.status==='rejected'&&c.rejection) html += `<div class="detail-card"><div class="detail-label">❌ سبب الرفض</div><div class="response-box red">${c.rejection}</div></div>`;
+
+      const docs=c.documents?Object.entries(c.documents):[];
+      if(docs.length) {
+        html += `<div class="detail-card"><div class="detail-label">📎 المستندات (${docs.length})</div>`;
+        docs.forEach(([_,d])=>{ html+=`<div class="doc-item" style="cursor:pointer" onclick="window.open('${d.data}','_blank')"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--teal)" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg><span>${d.name||'مستند'}</span></div>`; });
         html += `</div>`;
       }
 
+      // أزرار الإجراءات
       html += `
         <div class="detail-card">
-          <div class="actions-row">
-            <button class="btn btn-primary" onclick="editCase('${c.id}')">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-              تعديل
-            </button>
-            <button class="btn btn-danger" onclick="deleteCase('${c.id}')">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
-              حذف
-            </button>
+          <div class="detail-label">⚙️ الإجراءات</div>
+          <div class="actions-grid">
+            <button class="btn btn-primary" onclick="editCase('${c.id}')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>تعديل</button>
+            <button class="btn btn-danger" onclick="deleteCase('${c.id}')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>حذف</button>
+            <button class="btn btn-wa" onclick="shareWhatsApp('${c.id}')">${waSvg} واتساب</button>
+            <button class="btn btn-outline" onclick="shareText('${c.id}')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>مشاركة نص</button>
+            <button class="btn btn-print" onclick="printCase()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>طباعة</button>
+            <button class="btn btn-pdf" onclick="exportPDF()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>تصدير PDF</button>
           </div>
-          <div class="share-row">
-            ${waLink ? `<a href="${waLink}" target="_blank" class="btn btn-wa" style="text-decoration:none">${waSvg} واتساب</a>` : ''}
-            <button class="btn btn-outline" onclick="shareCase('${c.id}')">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
-              مشاركة
-            </button>
-          </div>
-        </div>
-      `;
+        </div>`;
 
-      document.getElementById('detailContent').innerHTML = html;
+      document.getElementById('detailContent').innerHTML=html;
       switchTab('detail');
     }
 
-    // ===== Edit Case =====
     function editCase(id) {
-      const c = cases.find(x => x.id === id);
-      if (!c) return;
-      
-      editingCaseId = id;
-      uploadedDocs = [];
-      document.getElementById('formTitle').textContent = 'تعديل الطلب';
-      document.getElementById('fName').value = c.name || '';
-      document.getElementById('fPhone').value = c.phone || '';
-      document.getElementById('fNationalId').value = c.nationalId || '';
-      document.getElementById('fCountry').value = c.country || '';
-      document.getElementById('fHospital').value = c.hospital || '';
-      document.getElementById('fSubmissionDate').value = c.submissionDate || '';
-      document.getElementById('fResponseDate').value = c.responseDate || '';
-      document.getElementById('fService').value = c.service || '';
-      document.getElementById('fDesc').value = c.desc || '';
-      document.getElementById('fStatus').value = c.status || 'under_review';
-      document.getElementById('fResponse').value = c.response || '';
-      document.getElementById('fRejection').value = c.rejection || '';
-      document.getElementById('docsList').innerHTML = '';
-      document.getElementById('docsCount').textContent = '';
-      toggleStatusFields();
-      switchTab('add');
+      const c=cases.find(x=>x.id===id); if(!c)return;
+      editingCaseId=id; uploadedDocs=[];
+      document.getElementById('formTitle').textContent='تعديل الطلب';
+      document.getElementById('fName').value=c.name||'';
+      document.getElementById('fPhone').value=c.phone||'';
+      document.getElementById('fNationalId').value=c.nationalId||'';
+      document.getElementById('fCountry').value=c.country||'';
+      document.getElementById('fHospital').value=c.hospital||'';
+      document.getElementById('fSubmissionDate').value=c.submissionDate||'';
+      document.getElementById('fResponseDate').value=c.responseDate||'';
+      document.getElementById('fService').value=c.service||'';
+      document.getElementById('fDesc').value=c.desc||'';
+      document.getElementById('fStatus').value=c.status||'under_review';
+      document.getElementById('fResponse').value=c.response||'';
+      document.getElementById('fRejection').value=c.rejection||'';
+      document.getElementById('docsList').innerHTML='';
+      document.getElementById('docsCount').textContent='';
+      toggleStatusFields(); switchTab('add');
     }
 
-    // ===== Delete Case =====
     function deleteCase(id) {
-      if (!confirm('هل أنت متأكد من حذف هذا الطلب؟')) return;
+      if(!confirm('هل أنت متأكد من حذف هذا الطلب؟'))return;
       showLoading(true);
-      db.ref('cases/' + id).remove().then(() => {
-        showLoading(false);
-        showToast('تم حذف الطلب ✅');
-        switchTab('cases');
-      }).catch(err => {
-        showLoading(false);
-        showToast('حدث خطأ أثناء الحذف');
-        console.error(err);
-      });
+      db.ref('cases/'+id).remove().then(()=>{ showLoading(false); showToast('تم الحذف ✅'); switchTab('cases'); }).catch(err=>{ showLoading(false); showToast('خطأ في الحذف'); });
     }
 
-    // ===== Share =====
-    function shareCase(id) {
-      const c = cases.find(x => x.id === id);
-      if (!c) return;
-      
-      const statusLabel = STATUS_LABELS[c.status] || c.status;
-      let text = `📋 *تفاصيل الطلب*\n`;
-      text += `الرقم: #${c.caseNumber || '-'}\n`;
-      text += `الاسم: ${c.name}\n`;
-      if (c.phone) text += `الهاتف: ${c.phone}\n`;
-      if (c.nationalId) text += `الرقم القومي: ${c.nationalId}\n`;
-      if (c.country) text += `البلد: ${c.country}\n`;
-      if (c.hospital) text += `المستشفى: ${c.hospital}\n`;
-      text += `الخدمة: ${c.service}\n`;
-      text += `الحالة: ${statusLabel}\n`;
-      if (c.submissionDate) text += `تاريخ الطلب: ${c.submissionDate}\n`;
-      if (c.responseDate) text += `تاريخ الرد: ${c.responseDate}\n`;
-      if (c.response) text += `الرد: ${c.response}\n`;
-      if (c.rejection) text += `سبب الرفض: ${c.rejection}\n`;
+    // ===== مشاركة عبر واتساب لصاحب الطلب =====
+    function shareWhatsApp(id) {
+      const c=cases.find(x=>x.id===id); if(!c)return;
+      const sl=STATUS_LABELS[c.status]||c.status;
+      let msg = `📋 *طلب رقم ${c.caseNumber}*\n`;
+      msg += `━━━━━━━━━━━━━━━\n`;
+      msg += `👤 *الاسم:* ${c.name}\n`;
+      if(c.phone) msg += `📱 *الهاتف:* ${c.phone}\n`;
+      if(c.nationalId) msg += `🆔 *الرقم القومي:* ${c.nationalId}\n`;
+      if(c.country) msg += `🏠 *البلد:* ${c.country}\n`;
+      if(c.hospital) msg += `🏥 *المستشفى:* ${c.hospital}\n`;
+      msg += `📝 *الخدمة:* ${c.service}\n`;
+      msg += `📊 *الحالة:* ${sl}\n`;
+      if(c.submissionDate) msg += `📅 *تاريخ الطلب:* ${c.submissionDate}\n`;
+      if(c.responseDate) msg += `📆 *تاريخ الرد:* ${c.responseDate}\n`;
+      if(c.desc) msg += `📄 *الوصف:* ${c.desc}\n`;
+      if(c.status==='responded'&&c.response) msg += `✅ *الرد:* ${c.response}\n`;
+      if(c.status==='rejected'&&c.rejection) msg += `❌ *سبب الرفض:* ${c.rejection}\n`;
+      msg += `━━━━━━━━━━━━━━━\n`;
+      msg += `🏢 مكتب الحاج أحمد الحديدي`;
 
-      if (navigator.share) {
-        navigator.share({ title: `طلب ${c.name}`, text });
-      } else {
-        navigator.clipboard.writeText(text).then(() => {
-          showToast('تم نسخ التفاصيل ✅');
-        });
-      }
+      const phone = formatPhoneForWA(c.phone);
+      const url = phone ? `https://wa.me/${phone}?text=${encodeURIComponent(msg)}` : `https://wa.me/?text=${encodeURIComponent(msg)}`;
+      window.open(url, '_blank');
     }
 
-    // ===== Print =====
+    function shareText(id) {
+      const c=cases.find(x=>x.id===id); if(!c)return;
+      const sl=STATUS_LABELS[c.status]||c.status;
+      let t=`طلب رقم ${c.caseNumber}\nالاسم: ${c.name}\n`;
+      if(c.phone)t+=`الهاتف: ${c.phone}\n`;
+      if(c.country)t+=`البلد: ${c.country}\n`;
+      if(c.hospital)t+=`المستشفى: ${c.hospital}\n`;
+      t+=`الخدمة: ${c.service}\nالحالة: ${sl}\n`;
+      if(c.submissionDate)t+=`التاريخ: ${c.submissionDate}\n`;
+      if(navigator.share){ navigator.share({title:`طلب ${c.name}`,text:t}); }
+      else{ navigator.clipboard.writeText(t).then(()=>showToast('تم النسخ ✅')); }
+    }
+
+    // ===== الطباعة =====
     function printCase() {
-      if (!currentDetailCase) return;
-      const c = currentDetailCase;
-      const statusLabel = STATUS_LABELS[c.status] || c.status;
-      
-      const printArea = document.getElementById('printArea');
-      printArea.style.display = 'block';
-      printArea.innerHTML = `
+      if(!currentDetailCase)return;
+      const c=currentDetailCase, sl=STATUS_LABELS[c.status]||c.status;
+      const pa=document.getElementById('printArea');
+      pa.style.display='block';
+      pa.innerHTML=`
         <div class="print-header">
-          <h1>El Ashry Pro - تقرير طلب</h1>
+          <h1>El Ashry Pro</h1>
           <p>مكتب الحاج أحمد الحديدي - عضو مجلس النواب</p>
         </div>
-        <div class="print-row"><span class="lbl">رقم الطلب</span><span class="val">#${c.caseNumber || '-'}</span></div>
-        <div class="print-row"><span class="lbl">الاسم</span><span class="val">${c.name || '-'}</span></div>
-        <div class="print-row"><span class="lbl">الهاتف</span><span class="val" dir="ltr">${c.phone || '-'}</span></div>
-        <div class="print-row"><span class="lbl">الرقم القومي</span><span class="val" dir="ltr">${c.nationalId || '-'}</span></div>
-        <div class="print-row"><span class="lbl">البلد</span><span class="val">${c.country || '-'}</span></div>
-        <div class="print-row"><span class="lbl">المستشفى</span><span class="val">${c.hospital || '-'}</span></div>
-        <div class="print-row"><span class="lbl">نوع الخدمة</span><span class="val">${c.service || '-'}</span></div>
-        <div class="print-row"><span class="lbl">الحالة</span><span class="val">${statusLabel}</span></div>
-        <div class="print-row"><span class="lbl">تاريخ الطلب</span><span class="val">${c.submissionDate || '-'}</span></div>
-        <div class="print-row"><span class="lbl">تاريخ الرد</span><span class="val">${c.responseDate || '-'}</span></div>
-        ${c.desc ? `<div class="print-section"><h3>الوصف</h3><p>${c.desc}</p></div>` : ''}
-        ${c.response ? `<div class="print-section"><h3>الرد</h3><p>${c.response}</p></div>` : ''}
-        ${c.rejection ? `<div class="print-section"><h3>سبب الرفض</h3><p>${c.rejection}</p></div>` : ''}
-        <div class="print-footer">تم الطباعة بتاريخ ${new Date().toLocaleDateString('ar-EG')} - El Ashry Pro v2.0</div>
-      `;
-      
-      setTimeout(() => {
-        window.print();
-        setTimeout(() => { printArea.style.display = 'none'; }, 500);
-      }, 200);
+        <div class="print-number">طلب رقم ${c.caseNumber}</div>
+        <div class="print-row"><span class="lbl">الاسم</span><span class="val">${c.name||'-'}</span></div>
+        <div class="print-row"><span class="lbl">الهاتف</span><span class="val" dir="ltr">${c.phone||'-'}</span></div>
+        <div class="print-row"><span class="lbl">الرقم القومي</span><span class="val" dir="ltr">${c.nationalId||'-'}</span></div>
+        <div class="print-row"><span class="lbl">البلد</span><span class="val">${c.country||'-'}</span></div>
+        <div class="print-row"><span class="lbl">المستشفى</span><span class="val">${c.hospital||'-'}</span></div>
+        <div class="print-row"><span class="lbl">نوع الخدمة</span><span class="val">${c.service||'-'}</span></div>
+        <div class="print-row"><span class="lbl">الحالة</span><span class="val">${sl}</span></div>
+        <div class="print-row"><span class="lbl">تاريخ الطلب</span><span class="val">${c.submissionDate||'-'}</span></div>
+        <div class="print-row"><span class="lbl">تاريخ الرد</span><span class="val">${c.responseDate||'-'}</span></div>
+        ${c.desc?`<div class="print-section"><h3>الوصف</h3><p>${c.desc}</p></div>`:''}
+        ${c.response?`<div class="print-section"><h3>الرد</h3><p>${c.response}</p></div>`:''}
+        ${c.rejection?`<div class="print-section"><h3>سبب الرفض</h3><p>${c.rejection}</p></div>`:''}
+        <div class="print-footer">تم الطباعة: ${new Date().toLocaleDateString('ar-EG')} - El Ashry Pro v2.0 - مكتب الحاج أحمد الحديدي</div>`;
+      setTimeout(()=>{ window.print(); setTimeout(()=>{pa.style.display='none';},500); },200);
     }
 
-    function exportPDF() {
-      showToast('جاري تحضير الملف للطباعة...');
-      printCase();
-    }
+    function exportPDF() { showToast('جاري تحضير الملف...'); printCase(); }
   </script>
 </body>
 </html>
