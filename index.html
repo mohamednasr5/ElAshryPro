@@ -1,0 +1,1529 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="El Ashry Pro">
+  <meta name="theme-color" content="#0d9488">
+  <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" href="icons/icon-192x192.png">
+  <title>El Ashry Pro</title>
+
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800&display=swap');
+
+    * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+    :root {
+      --teal: #0d9488;
+      --teal-dark: #0f766e;
+      --teal-darker: #115e59;
+      --emerald: #10b981;
+      --amber: #f59e0b;
+      --sky: #0ea5e9;
+      --violet: #8b5cf6;
+      --red: #ef4444;
+      --green-wa: #25D366;
+      --bg: #f8fafc;
+      --card: #ffffff;
+      --text: #1e293b;
+      --text2: #64748b;
+      --text3: #94a3b8;
+      --border: #e2e8f0;
+      --radius: 12px;
+      --safe-bottom: env(safe-area-inset-bottom, 0px);
+    }
+
+    body {
+      font-family: 'Cairo', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      overflow-x: hidden;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ========== Login ========== */
+    .login-screen {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      background: linear-gradient(135deg, #0d9488 0%, #0f766e 50%, #115e59 100%);
+    }
+
+    .login-logo {
+      width: 96px; height: 96px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.2);
+      backdrop-filter: blur(8px);
+      display: flex; align-items: center; justify-content: center;
+      margin-bottom: 16px;
+    }
+
+    .login-logo svg { width: 48px; height: 48px; fill: white; }
+
+    .login-title { font-size: 28px; font-weight: 800; color: #fff; margin-bottom: 4px; }
+    .login-sub { color: #ccfbf1; font-size: 14px; }
+    .login-office { color: #99f6e4; font-size: 12px; margin-top: 4px; }
+
+    .login-card {
+      width: 100%; max-width: 380px;
+      background: #fff; border-radius: 20px;
+      padding: 32px 24px; margin-top: 32px;
+      box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25);
+    }
+
+    .login-icon-circle {
+      width: 56px; height: 56px; border-radius: 50%;
+      background: #f0fdfa; display: flex; align-items: center; justify-content: center;
+      margin: 0 auto 12px;
+    }
+
+    .login-icon-circle svg { width: 28px; height: 28px; color: var(--teal); }
+
+    .login-card h2 { text-align: center; font-size: 18px; font-weight: 700; margin-bottom: 20px; }
+
+    .input-group { position: relative; margin-bottom: 12px; }
+
+    .input-group input {
+      width: 100%; height: 48px; border: 2px solid var(--border); border-radius: 12px;
+      padding: 0 44px; font-size: 18px; text-align: center; font-family: 'Cairo', sans-serif;
+      outline: none; transition: border-color 0.2s;
+      direction: ltr;
+    }
+
+    .input-group input:focus { border-color: var(--teal); }
+
+    .toggle-eye {
+      position: absolute; left: 12px; top: 50%; transform: translateY(-50%);
+      background: none; border: none; cursor: pointer; color: var(--text3); padding: 4px;
+    }
+
+    .btn {
+      width: 100%; height: 48px; border: none; border-radius: 12px;
+      font-size: 18px; font-weight: 700; cursor: pointer;
+      font-family: 'Cairo', sans-serif; transition: all 0.2s;
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+    }
+
+    .btn:active { transform: scale(0.97); }
+
+    .btn-primary { background: var(--teal); color: #fff; }
+    .btn-primary:hover { background: var(--teal-dark); }
+
+    .btn-outline {
+      background: transparent; border: 2px solid var(--border); color: var(--text);
+    }
+    .btn-outline:hover { background: #f1f5f9; }
+
+    .btn-danger { background: transparent; border: 2px solid #fecaca; color: var(--red); }
+    .btn-danger:hover { background: #fef2f2; }
+
+    .btn-sm { height: 38px; font-size: 14px; border-radius: 10px; }
+
+    .login-error { color: var(--red); font-size: 13px; text-align: center; margin-bottom: 8px; min-height: 20px; }
+
+    .login-credits { text-align: center; margin-top: 24px; }
+    .login-credits p { color: #ccfbf1; font-size: 12px; }
+    .login-credits .name { color: #99f6e4; font-size: 13px; font-weight: 600; margin-top: 2px; }
+
+    @keyframes shake {
+      0%,100% { transform: translateX(0); }
+      10%,30%,50%,70%,90% { transform: translateX(-5px); }
+      20%,40%,60%,80% { transform: translateX(5px); }
+    }
+    .shake { animation: shake 0.5s ease-in-out; }
+
+    /* ========== App Shell ========== */
+    .app { display: none; min-height: 100vh; background: var(--bg); padding-bottom: calc(70px + var(--safe-bottom)); }
+    .app.active { display: block; }
+
+    .page { display: none; padding: 16px; max-width: 480px; margin: 0 auto; }
+    .page.active { display: block; }
+
+    /* ========== Bottom Nav ========== */
+    .bottom-nav {
+      position: fixed; bottom: 0; left: 0; right: 0;
+      background: #fff; border-top: 1px solid var(--border);
+      z-index: 100; padding-bottom: var(--safe-bottom);
+    }
+
+    .nav-items {
+      display: flex; align-items: center; justify-content: space-around;
+      max-width: 480px; margin: 0 auto; padding: 4px 8px;
+    }
+
+    .nav-item {
+      display: flex; flex-direction: column; align-items: center;
+      padding: 6px 12px; cursor: pointer; border: none; background: none;
+      color: var(--text3); font-family: 'Cairo', sans-serif; transition: color 0.2s;
+    }
+
+    .nav-item svg { width: 22px; height: 22px; margin-bottom: 2px; }
+    .nav-item span { font-size: 10px; font-weight: 600; }
+    .nav-item.active { color: var(--teal); }
+
+    .nav-add {
+      display: flex; flex-direction: column; align-items: center;
+      margin-top: -20px; cursor: pointer; border: none; background: none;
+      font-family: 'Cairo', sans-serif;
+    }
+
+    .nav-add-circle {
+      width: 56px; height: 56px; border-radius: 50%;
+      background: var(--teal); display: flex; align-items: center; justify-content: center;
+      box-shadow: 0 8px 20px rgba(13,148,136,0.35);
+      transition: all 0.2s;
+    }
+
+    .nav-add-circle svg { width: 28px; height: 28px; color: #fff; }
+    .nav-add:active .nav-add-circle { transform: scale(0.93); }
+    .nav-add span { font-size: 10px; color: var(--teal); font-weight: 600; margin-top: 2px; }
+
+    /* ========== Header Banner ========== */
+    .header-banner {
+      background: linear-gradient(135deg, #0d9488, #0f766e);
+      border-radius: 16px; padding: 20px; color: #fff; margin-bottom: 20px;
+      box-shadow: 0 8px 20px rgba(13,148,136,0.2);
+    }
+
+    .header-banner .top { display: flex; align-items: center; gap: 12px; margin-bottom: 8px; }
+
+    .header-icon {
+      width: 48px; height: 48px; border-radius: 50%;
+      background: rgba(255,255,255,0.2); display: flex; align-items: center; justify-content: center;
+    }
+
+    .header-icon svg { width: 24px; height: 24px; color: #fff; }
+    .header-banner h1 { font-size: 20px; font-weight: 800; }
+    .header-banner .office { font-size: 12px; color: #ccfbf1; }
+    .header-banner .stat-line { display: flex; align-items: center; gap: 6px; color: #99f6e4; font-size: 13px; margin-top: 4px; }
+
+    /* ========== Stats Grid ========== */
+    .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px; }
+
+    .stat-card {
+      background: #fff; border-radius: 14px; padding: 14px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.06); cursor: pointer; transition: box-shadow 0.2s;
+    }
+
+    .stat-card:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+
+    .stat-card .top-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
+
+    .stat-icon {
+      width: 40px; height: 40px; border-radius: 12px;
+      display: flex; align-items: center; justify-content: center;
+    }
+
+    .stat-icon svg { width: 20px; height: 20px; }
+    .stat-card .value { font-size: 24px; font-weight: 800; }
+    .stat-card .label { font-size: 11px; color: var(--text2); font-weight: 600; }
+
+    /* ========== Section ========== */
+    .section-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+    .section-header h2 { font-size: 16px; font-weight: 700; display: flex; align-items: center; gap: 8px; }
+    .section-header a { font-size: 13px; color: var(--teal); font-weight: 600; cursor: pointer; }
+
+    /* ========== Case Card ========== */
+    .case-card {
+      background: #fff; border-radius: 14px; padding: 14px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.06); margin-bottom: 8px;
+      cursor: pointer; transition: box-shadow 0.2s;
+    }
+
+    .case-card:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+
+    .case-top { display: flex; align-items: center; justify-content: space-between; }
+
+    .case-info { flex: 1; min-width: 0; }
+    .case-meta { display: flex; align-items: center; gap: 6px; margin-bottom: 2px; }
+    .case-number { font-size: 11px; font-family: monospace; color: var(--text3); }
+    .case-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+    .case-time { font-size: 11px; color: var(--text3); }
+    .case-name { font-size: 14px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .case-service { font-size: 12px; color: var(--text2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+    .case-actions { display: flex; align-items: center; gap: 6px; margin-right: 10px; }
+
+    .status-badge {
+      font-size: 11px; padding: 3px 10px; border-radius: 20px; color: #fff;
+      font-weight: 600; white-space: nowrap;
+    }
+
+    .wa-btn {
+      width: 32px; height: 32px; border-radius: 50%;
+      background: #dcfce7; display: flex; align-items: center; justify-content: center;
+      cursor: pointer; border: none; transition: background 0.2s; flex-shrink: 0;
+    }
+
+    .wa-btn:hover { background: #bbf7d0; }
+    .wa-btn svg { width: 16px; height: 16px; fill: #16a34a; }
+
+    /* ========== Empty State ========== */
+    .empty-state { text-align: center; padding: 40px 20px; }
+    .empty-state svg { width: 64px; height: 64px; color: #e2e8f0; margin-bottom: 12px; }
+    .empty-state p { color: var(--text3); font-size: 14px; }
+    .empty-state a { color: var(--teal); font-size: 13px; font-weight: 600; cursor: pointer; display: inline-block; margin-top: 8px; }
+
+    /* ========== Form ========== */
+    .form-card {
+      background: #fff; border-radius: 14px; padding: 18px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.06); margin-bottom: 12px;
+    }
+
+    .form-section-title {
+      display: flex; align-items: center; gap: 8px;
+      font-size: 15px; font-weight: 700; margin-bottom: 14px; color: var(--text);
+    }
+
+    .section-num {
+      width: 24px; height: 24px; border-radius: 50%;
+      background: #f0fdfa; display: flex; align-items: center; justify-content: center;
+      font-size: 12px; font-weight: 700; color: var(--teal);
+    }
+
+    .form-group { margin-bottom: 12px; }
+    .form-group label { display: block; font-size: 13px; color: var(--text2); margin-bottom: 4px; font-weight: 600; }
+
+    .form-input {
+      width: 100%; height: 44px; border: 2px solid var(--border); border-radius: 10px;
+      padding: 0 12px; font-size: 15px; font-family: 'Cairo', sans-serif;
+      outline: none; transition: border-color 0.2s; background: #fff;
+    }
+
+    .form-input:focus { border-color: var(--teal); }
+
+    .form-textarea {
+      width: 100%; min-height: 90px; border: 2px solid var(--border); border-radius: 10px;
+      padding: 10px 12px; font-size: 14px; font-family: 'Cairo', sans-serif;
+      outline: none; transition: border-color 0.2s; resize: vertical; background: #fff;
+    }
+
+    .form-textarea:focus { border-color: var(--teal); }
+
+    .form-select {
+      width: 100%; height: 44px; border: 2px solid var(--border); border-radius: 10px;
+      padding: 0 12px; font-size: 14px; font-family: 'Cairo', sans-serif;
+      outline: none; transition: border-color 0.2s; background: #fff;
+      appearance: none; cursor: pointer;
+    }
+
+    .form-select:focus { border-color: var(--teal); }
+
+    .upload-area {
+      width: 100%; height: 72px; border: 2px dashed #99f6e4; border-radius: 12px;
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+      color: var(--teal); font-size: 15px; font-weight: 600; cursor: pointer;
+      background: #f0fdfa; transition: background 0.2s;
+    }
+
+    .upload-area:hover { background: #ccfbf1; }
+    .upload-area svg { width: 20px; height: 20px; }
+
+    .doc-item {
+      display: flex; align-items: center; gap: 8px;
+      padding: 8px; background: #f8fafc; border-radius: 8px; margin-top: 6px;
+    }
+
+    .doc-item svg { width: 16px; height: 16px; color: var(--text3); flex-shrink: 0; }
+    .doc-item span { font-size: 13px; flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+    .doc-remove {
+      width: 24px; height: 24px; border-radius: 50%;
+      background: #fef2f2; display: flex; align-items: center; justify-content: center;
+      border: none; cursor: pointer; flex-shrink: 0;
+    }
+
+    .doc-remove svg { width: 12px; height: 12px; color: var(--red); }
+
+    /* ========== Search ========== */
+    .search-box {
+      position: relative; margin-bottom: 12px;
+    }
+
+    .search-box input {
+      width: 100%; height: 48px; border: 2px solid var(--border); border-radius: 12px;
+      padding: 0 44px 0 40px; font-size: 15px; font-family: 'Cairo', sans-serif; outline: none;
+    }
+
+    .search-box input:focus { border-color: var(--teal); }
+
+    .search-box .search-icon {
+      position: absolute; right: 14px; top: 50%; transform: translateY(-50%);
+      color: var(--text3);
+    }
+
+    .search-box .filter-btn {
+      position: absolute; left: 8px; top: 50%; transform: translateY(-50%);
+      width: 28px; height: 28px; border-radius: 50%; border: none;
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer; background: none; color: var(--text3); transition: all 0.2s;
+    }
+
+    .search-box .filter-btn.active { background: #f0fdfa; color: var(--teal); }
+
+    .filter-pills { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
+
+    .pill {
+      padding: 5px 12px; border-radius: 20px; font-size: 12px; font-weight: 600;
+      border: none; cursor: pointer; font-family: 'Cairo', sans-serif; transition: all 0.2s;
+      background: #f1f5f9; color: var(--text2);
+    }
+
+    .pill.active { background: var(--teal); color: #fff; }
+
+    /* ========== Detail View ========== */
+    .back-header { display: flex; align-items: center; gap: 10px; margin-bottom: 20px; }
+
+    .back-btn {
+      width: 40px; height: 40px; border-radius: 50%;
+      background: #f1f5f9; display: flex; align-items: center; justify-content: center;
+      border: none; cursor: pointer;
+    }
+
+    .back-btn svg { width: 20px; height: 20px; color: var(--text); }
+
+    .detail-card {
+      background: #fff; border-radius: 14px; padding: 18px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.06); margin-bottom: 12px;
+    }
+
+    .detail-row { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; font-size: 14px; }
+    .detail-row svg { width: 16px; height: 16px; color: var(--text3); flex-shrink: 0; }
+    .detail-row .lbl { color: var(--text2); }
+    .detail-row .val { font-weight: 600; direction: ltr; }
+
+    .detail-sep { border-top: 1px solid var(--border); padding-top: 12px; margin-top: 12px; }
+    .detail-label { font-size: 12px; color: var(--text2); margin-bottom: 6px; }
+
+    .response-box { padding: 10px; border-radius: 10px; font-size: 13px; margin-top: 4px; }
+    .response-box.violet { background: #f5f3ff; color: #6d28d9; }
+    .response-box.red { background: #fef2f2; color: #dc2626; }
+
+    .actions-row { display: flex; gap: 10px; margin-top: 16px; }
+    .actions-row .btn { flex: 1; }
+
+    /* ========== Settings ========== */
+    .settings-stat {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 10px;
+    }
+
+    .settings-stat-item {
+      padding: 14px; border-radius: 12px; text-align: center;
+    }
+
+    .settings-stat-item .num { font-size: 24px; font-weight: 800; }
+    .settings-stat-item .lbl { font-size: 11px; }
+
+    .link-item {
+      display: flex; align-items: center; gap: 12px;
+      padding: 12px; border-radius: 12px; cursor: pointer;
+      text-decoration: none; color: var(--text); transition: background 0.2s;
+    }
+
+    .link-item:hover { filter: brightness(0.95); }
+
+    .link-icon {
+      width: 40px; height: 40px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+    }
+
+    .link-icon svg { width: 20px; height: 20px; fill: #fff; }
+    .link-item .link-text { font-weight: 600; font-size: 14px; }
+    .link-item .link-sub { font-size: 11px; color: var(--text2); }
+    .link-item .link-arrow { margin-right: auto; color: var(--text3); }
+
+    /* ========== Credits ========== */
+    .credits { text-align: center; padding: 24px; }
+    .credits p { color: var(--text3); font-size: 13px; }
+    .credits .name { color: var(--text2); font-size: 14px; font-weight: 600; margin-top: 2px; }
+
+    /* ========== Toast ========== */
+    .toast {
+      position: fixed; top: 20px; left: 50%; transform: translateX(-50%) translateY(-100px);
+      background: #1e293b; color: #fff; padding: 12px 24px; border-radius: 12px;
+      font-size: 14px; font-weight: 600; z-index: 9999;
+      transition: transform 0.3s ease; font-family: 'Cairo', sans-serif;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+    }
+
+    .toast.show { transform: translateX(-50%) translateY(0); }
+
+    /* ========== Loading ========== */
+    .spinner {
+      width: 20px; height: 20px; border: 3px solid rgba(255,255,255,0.3);
+      border-top-color: #fff; border-radius: 50%; animation: spin 0.7s linear infinite;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .loading-overlay {
+      position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(255,255,255,0.8); display: flex;
+      align-items: center; justify-content: center; z-index: 200;
+      flex-direction: column; gap: 12px;
+    }
+
+    .loading-overlay .spinner { border-color: rgba(13,148,136,0.2); border-top-color: var(--teal); width: 40px; height: 40px; }
+    .loading-overlay p { color: var(--text2); font-size: 14px; }
+
+    /* ========== Page Title ========== */
+    .page-title {
+      font-size: 20px; font-weight: 800; margin-bottom: 16px;
+      display: flex; align-items: center; gap: 8px;
+    }
+
+    .page-title svg { width: 24px; height: 24px; color: var(--teal); }
+
+    /* ========== Hidden ========== */
+    .hidden { display: none !important; }
+
+    /* ========== Confirm Modal ========== */
+    .modal-overlay {
+      position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.5); z-index: 300;
+      display: flex; align-items: center; justify-content: center; padding: 24px;
+    }
+
+    .modal-box {
+      background: #fff; border-radius: 16px; padding: 24px; width: 100%; max-width: 340px;
+      text-align: center;
+    }
+
+    .modal-box h3 { font-size: 18px; font-weight: 700; margin-bottom: 8px; }
+    .modal-box p { font-size: 14px; color: var(--text2); margin-bottom: 20px; }
+    .modal-btns { display: flex; gap: 10px; }
+    .modal-btns .btn { flex: 1; }
+  </style>
+</head>
+<body>
+
+  <!-- Toast -->
+  <div id="toast" class="toast"></div>
+
+  <!-- Loading -->
+  <div id="loading" class="loading-overlay hidden">
+    <div class="spinner"></div>
+    <p>جاري التحميل...</p>
+  </div>
+
+  <!-- ========== LOGIN SCREEN ========== -->
+  <div id="loginScreen" class="login-screen">
+    <div class="login-logo">
+      <svg viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+    </div>
+    <h1 class="login-title">El Ashry Pro</h1>
+    <p class="login-sub">نظام إدارة خدمات القطاع الصحي</p>
+    <p class="login-office">مكتب الحاج أحمد الحديدي - عضو مجلس النواب</p>
+
+    <div class="login-card" id="loginCard">
+      <div class="login-icon-circle">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+      </div>
+      <h2>تسجيل الدخول</h2>
+      <form id="loginForm">
+        <div class="input-group">
+          <input type="password" id="passwordInput" placeholder="أدخل كلمة المرور" autocomplete="off">
+          <button type="button" class="toggle-eye" id="toggleEye">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+          </button>
+        </div>
+        <p class="login-error" id="loginError"></p>
+        <button type="submit" class="btn btn-primary">دخول</button>
+      </form>
+    </div>
+
+    <div class="login-credits">
+<p>برمجة وتطوير بكل ❤️</p>
+      <p class="name">المهندس محمد حماد</p>
+    </div>
+  </div>
+
+  <!-- ========== MAIN APP ========== -->
+  <div id="app" class="app">
+
+    <!-- PAGE: Home -->
+    <div id="pageHome" class="page active">
+      <div class="header-banner">
+        <div class="top">
+          <div class="header-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+          </div>
+          <div>
+            <h1>El Ashry Pro</h1>
+            <p class="office">مكتب الحاج أحمد الحديدي</p>
+          </div>
+        </div>
+        <div class="stat-line">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
+          <span id="homeTotalLine">0 طلب مسجل في النظام</span>
+        </div>
+      </div>
+
+      <div class="stats-grid" id="statsGrid">
+        <div class="stat-card" onclick="filterByStatus('all')">
+          <div class="top-row">
+            <div class="stat-icon" style="background:#f0fdfa"><svg viewBox="0 0 24 24" fill="none" stroke="#0d9488" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></div>
+            <span class="value" id="statTotal">0</span>
+          </div>
+          <span class="label">إجمالي الطلبات</span>
+        </div>
+        <div class="stat-card" onclick="filterByStatus('executed')">
+          <div class="top-row">
+            <div class="stat-icon" style="background:#ecfdf5"><svg viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg></div>
+            <span class="value" id="statExecuted">0</span>
+          </div>
+          <span class="label">تم التنفيذ</span>
+        </div>
+        <div class="stat-card" onclick="filterByStatus('under_review')">
+          <div class="top-row">
+            <div class="stat-icon" style="background:#fffbeb"><svg viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div>
+            <span class="value" id="statReview">0</span>
+          </div>
+          <span class="label">تحت المراجعة</span>
+        </div>
+        <div class="stat-card" onclick="filterByStatus('under_procedure')">
+          <div class="top-row">
+            <div class="stat-icon" style="background:#f0f9ff"><svg viewBox="0 0 24 24" fill="none" stroke="#0ea5e9" stroke-width="2"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg></div>
+            <span class="value" id="statProcedure">0</span>
+          </div>
+          <span class="label">تحت الإجراء</span>
+        </div>
+        <div class="stat-card" onclick="filterByStatus('responded')">
+          <div class="top-row">
+            <div class="stat-icon" style="background:#f5f3ff"><svg viewBox="0 0 24 24" fill="none" stroke="#8b5cf6" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></div>
+            <span class="value" id="statResponded">0</span>
+          </div>
+          <span class="label">تم الرد</span>
+        </div>
+        <div class="stat-card" onclick="filterByStatus('rejected')">
+          <div class="top-row">
+            <div class="stat-icon" style="background:#fef2f2"><svg viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg></div>
+            <span class="value" id="statRejected">0</span>
+          </div>
+          <span class="label">مرفوض</span>
+        </div>
+      </div>
+
+      <div class="section-header">
+        <h2>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#0d9488" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+          أحدث الطلبات
+        </h2>
+        <a onclick="switchTab('cases')">عرض الكل</a>
+      </div>
+      <div id="recentCases"></div>
+    </div>
+
+    <!-- PAGE: Cases -->
+    <div id="pageCases" class="page">
+      <div class="page-title">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+        الطلبات
+      </div>
+
+      <div class="search-box">
+        <svg class="search-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input type="text" id="casesSearch" placeholder="بحث بالاسم أو الرقم..." oninput="renderCases()">
+        <button class="filter-btn" id="casesFilterBtn" onclick="toggleCasesFilter()">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
+        </button>
+      </div>
+
+      <div class="filter-pills hidden" id="casesFilters">
+        <button class="pill active" onclick="setCaseFilter('all',this)">الكل</button>
+        <button class="pill" onclick="setCaseFilter('executed',this)">تم التنفيذ</button>
+        <button class="pill" onclick="setCaseFilter('under_review',this)">تحت المراجعة</button>
+        <button class="pill" onclick="setCaseFilter('under_procedure',this)">تحت الإجراء</button>
+        <button class="pill" onclick="setCaseFilter('responded',this)">تم الرد</button>
+        <button class="pill" onclick="setCaseFilter('rejected',this)">مرفوض</button>
+      </div>
+
+      <div id="casesList"></div>
+    </div>
+
+    <!-- PAGE: Add/Edit -->
+    <div id="pageAdd" class="page">
+      <div class="back-header">
+        <button class="back-btn" onclick="cancelForm()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="transform:rotate(180deg)"><polyline points="15 18 9 12 15 6"/></svg>
+        </button>
+        <h1 style="font-size:18px;font-weight:700" id="formTitle">طلب جديد</h1>
+      </div>
+
+      <!-- Section 1: Person Info -->
+      <div class="form-card">
+        <div class="form-section-title">
+          <div class="section-num">1</div>
+          بيانات الشخص
+        </div>
+        <div class="form-group">
+          <label>الاسم الكامل *</label>
+          <input class="form-input" id="fName" placeholder="أدخل الاسم الكامل">
+        </div>
+        <div class="form-group">
+          <label>رقم الهاتف</label>
+          <input class="form-input" id="fPhone" placeholder="01xxxxxxxxx" dir="ltr">
+        </div>
+        <div class="form-group">
+          <label>الرقم القومي</label>
+          <input class="form-input" id="fNationalId" placeholder="أدخل الرقم القومي" dir="ltr">
+        </div>
+      </div>
+
+      <!-- Section 2: Service -->
+      <div class="form-card">
+        <div class="form-section-title">
+          <div class="section-num">2</div>
+          تفاصيل الخدمة
+        </div>
+        <div class="form-group">
+          <label>نوع الخدمة *</label>
+          <select class="form-select" id="fService">
+            <option value="">اختر نوع الخدمة</option>
+            <option>علاج على نفقة الدولة</option>
+            <option>تكاليف العلاج</option>
+            <option>عملية جراحية</option>
+            <option>انتداب ممرض</option>
+            <option>تحويل مستشفى</option>
+            <option>أجهزة طبية</option>
+            <option>خدمة أخرى</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>الوصف</label>
+          <textarea class="form-textarea" id="fDesc" placeholder="اكتب تفاصيل الحالة..."></textarea>
+        </div>
+      </div>
+
+      <!-- Section 3: Status -->
+      <div class="form-card">
+        <div class="form-section-title">
+          <div class="section-num">3</div>
+          حالة الطلب
+        </div>
+        <div class="form-group">
+          <label>الحالة</label>
+          <select class="form-select" id="fStatus" onchange="toggleStatusFields()">
+            <option value="under_review">تحت المراجعة</option>
+            <option value="under_procedure">تحت الإجراء</option>
+            <option value="executed">تم التنفيذ</option>
+            <option value="responded">تم الرد</option>
+            <option value="rejected">طلب مرفوض</option>
+          </select>
+        </div>
+        <div class="form-group hidden" id="responseGroup">
+          <label>الرد</label>
+          <textarea class="form-textarea" id="fResponse" placeholder="اكتب الرد..."></textarea>
+        </div>
+        <div class="form-group hidden" id="rejectionGroup">
+          <label>سبب الرفض</label>
+          <textarea class="form-textarea" id="fRejection" placeholder="اكتب سبب الرفض..."></textarea>
+        </div>
+      </div>
+
+      <!-- Section 4: Documents -->
+      <div class="form-card">
+        <div class="form-section-title">
+          <div class="section-num">4</div>
+          المستندات والاوراق
+        </div>
+        <div class="upload-area" onclick="document.getElementById('fileInput').click()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+          رفع مستندات
+        </div>
+        <input type="file" id="fileInput" multiple accept="image/*,.pdf,.doc,.docx" style="display:none" onchange="handleFileUpload(this.files)">
+        <div id="docsList"></div>
+      </div>
+
+      <button class="btn btn-primary" style="font-size:18px;height:50px" onclick="saveCase()" id="saveBtn">
+        حفظ الطلب
+      </button>
+    </div>
+
+    <!-- PAGE: Detail -->
+    <div id="pageDetail" class="page">
+      <div class="back-header">
+        <button class="back-btn" onclick="switchTab('cases')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="transform:rotate(180deg)"><polyline points="15 18 9 12 15 6"/></svg>
+        </button>
+        <h1 style="font-size:18px;font-weight:700">تفاصيل الطلب</h1>
+      </div>
+      <div id="detailContent"></div>
+    </div>
+
+    <!-- PAGE: Search -->
+    <div id="pageSearch" class="page">
+      <div class="page-title">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        البحث والاستعلام
+      </div>
+      <div class="search-box">
+        <svg class="search-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input type="text" id="globalSearch" placeholder="بحث بالاسم أو الرقم أو الرقم القومي..." oninput="renderSearch()" autofocus>
+        <button class="filter-btn" id="searchFilterBtn" onclick="toggleSearchFilter()">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
+        </button>
+      </div>
+      <div class="filter-pills hidden" id="searchFilters">
+        <button class="pill active" onclick="setSearchFilter('all',this)">الكل</button>
+        <button class="pill" onclick="setSearchFilter('executed',this)">تم التنفيذ</button>
+        <button class="pill" onclick="setSearchFilter('under_review',this)">تحت المراجعة</button>
+        <button class="pill" onclick="setSearchFilter('under_procedure',this)">تحت الإجراء</button>
+        <button class="pill" onclick="setSearchFilter('responded',this)">تم الرد</button>
+        <button class="pill" onclick="setSearchFilter('rejected',this)">مرفوض</button>
+      </div>
+      <div id="searchResults">
+        <div class="empty-state">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <p>ابحث عن طلب</p>
+          <p style="font-size:12px;color:#cbd5e1;margin-top:4px">أدخل اسم الشخص أو رقم الحالة أو الرقم القومي</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- PAGE: Settings -->
+    <div id="pageSettings" class="page">
+      <div class="page-title">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+        الإعدادات
+      </div>
+
+      <div class="form-card">
+        <div class="form-section-title">إحصائيات</div>
+        <div class="settings-stat">
+          <div class="settings-stat-item" style="background:#f0fdfa">
+            <div class="num" style="color:var(--teal)" id="settTotal">0</div>
+            <div class="lbl" style="color:var(--teal)">إجمالي الطلبات</div>
+          </div>
+          <div class="settings-stat-item" style="background:#fffbeb">
+            <div class="num" style="color:var(--amber)" id="settDocs">0</div>
+            <div class="lbl" style="color:var(--amber)">المستندات المرفقة</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="form-card">
+        <div class="form-section-title">معلومات التطبيق</div>
+        <div style="font-size:13px;color:var(--text2);display:flex;flex-direction:column;gap:6px">
+          <div style="display:flex;justify-content:space-between"><span>اسم التطبيق</span><strong style="color:var(--text)">El Ashry Pro</strong></div>
+          <div style="display:flex;justify-content:space-between"><span>الإصدار</span><strong style="color:var(--text)">1.0.0</strong></div>
+          <div style="display:flex;justify-content:space-between"><span>المكتب</span><strong style="color:var(--text)">الحاج أحمد الحديدي</strong></div>
+          <div style="display:flex;justify-content:space-between"><span>القطاع</span><strong style="color:var(--text)">الصحة</strong></div>
+        </div>
+      </div>
+
+      <div class="form-card" style="padding:8px">
+        <a href="https://wa.me/201279934755" target="_blank" class="link-item" style="background:#f0fdf4;border-radius:10px">
+          <div class="link-icon" style="background:#16a34a">
+            <svg viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+          </div>
+          <div>
+            <div class="link-text">واتساب المطور</div>
+            <div class="link-sub">تواصل مع المهندس محمد حماد</div>
+          </div>
+          <svg class="link-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+        </a>
+        <a href="https://www.facebook.com/en.mohamed.nasr" target="_blank" class="link-item" style="background:#eff6ff;border-radius:10px;margin-top:6px">
+          <div class="link-icon" style="background:#2563eb">
+            <svg viewBox="0 0 24 24"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>
+          </div>
+          <div>
+            <div class="link-text">فيسبوك المطور</div>
+            <div class="link-sub">صفحة المهندس محمد حماد</div>
+          </div>
+          <svg class="link-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+        </a>
+      </div>
+
+      <button class="btn btn-danger" style="margin-top:12px" onclick="logout()">تسجيل الخروج</button>
+
+      <div class="credits">
+        <p>برمجة وتطوير بكل ❤️ ينبض</p>
+        <p class="name">المهندس محمد حماد</p>
+      </div>
+    </div>
+
+    <!-- Bottom Navigation -->
+    <nav class="bottom-nav">
+      <div class="nav-items">
+        <button class="nav-item active" onclick="switchTab('home')" data-tab="home">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+          <span>الرئيسية</span>
+        </button>
+        <button class="nav-item" onclick="switchTab('cases')" data-tab="cases">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+          <span>الطلبات</span>
+        </button>
+        <button class="nav-add" onclick="openNewCase()">
+          <div class="nav-add-circle">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          </div>
+          <span>إضافة</span>
+        </button>
+        <button class="nav-item" onclick="switchTab('search')" data-tab="search">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <span>بحث</span>
+        </button>
+        <button class="nav-item" onclick="switchTab('settings')" data-tab="settings">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+          <span>المزيد</span>
+        </button>
+      </div>
+    </nav>
+  </div>
+
+  <!-- ========== JAVASCRIPT ========== -->
+  <script>
+    // ===== Firebase Config =====
+    const firebaseConfig = {
+      apiKey: "AIzaSyCXu2rJGT81e9BBkJXzzVyEyXWaYcrK2NM",
+      authDomain: "el-ashry.firebaseapp.com",
+      databaseURL: "https://el-ashry-default-rtdb.firebaseio.com",
+      projectId: "el-ashry",
+      storageBucket: "el-ashry.firebasestorage.app",
+      messagingSenderId: "169155515034",
+      appId: "1:169155515034:web:d74c9f027efd216a228523",
+      measurementId: "G-ZXLJQTJQW2"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+
+    // ===== Constants =====
+    const PASSWORD = "521988";
+    const STATUS_LABELS = {
+      executed: "تم التنفيذ",
+      under_review: "تحت المراجعة",
+      under_procedure: "تحت الإجراء",
+      responded: "تم الرد",
+      rejected: "طلب مرفوض"
+    };
+    const STATUS_COLORS = {
+      executed: "#10b981",
+      under_review: "#f59e0b",
+      under_procedure: "#0ea5e9",
+      responded: "#8b5cf6",
+      rejected: "#ef4444"
+    };
+
+    // ===== State =====
+    let cases = [];
+    let currentTab = "home";
+    let editingCaseId = null;
+    let uploadedDocs = [];
+    let caseFilterStatus = "all";
+    let searchFilterStatus = "all";
+
+    // ===== WhatsApp SVG =====
+    const waSvg = '<svg viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>';
+
+    // ===== Toast =====
+    function showToast(msg, duration = 2500) {
+      const t = document.getElementById('toast');
+      t.textContent = msg;
+      t.classList.add('show');
+      setTimeout(() => t.classList.remove('show'), duration);
+    }
+
+    // ===== Login =====
+    document.getElementById('loginForm').addEventListener('submit', function(e) {
+      e.preventDefault();
+      const pw = document.getElementById('passwordInput').value;
+      if (pw === PASSWORD) {
+        document.getElementById('loginScreen').style.display = 'none';
+        document.getElementById('app').classList.add('active');
+        loadCases();
+      } else {
+        document.getElementById('loginError').textContent = 'كلمة المرور غير صحيحة';
+        document.getElementById('loginCard').classList.add('shake');
+        setTimeout(() => document.getElementById('loginCard').classList.remove('shake'), 500);
+      }
+    });
+
+    document.getElementById('toggleEye').addEventListener('click', function() {
+      const inp = document.getElementById('passwordInput');
+      inp.type = inp.type === 'password' ? 'text' : 'password';
+    });
+
+    // ===== Logout =====
+    function logout() {
+      document.getElementById('app').classList.remove('active');
+      document.getElementById('loginScreen').style.display = '';
+      document.getElementById('passwordInput').value = '';
+      document.getElementById('loginError').textContent = '';
+    }
+
+    // ===== Firebase: Load Cases =====
+    function loadCases() {
+      document.getElementById('loading').classList.remove('hidden');
+      db.ref('cases').on('value', (snapshot) => {
+        const data = snapshot.val();
+        cases = data ? Object.values(data) : [];
+        renderAll();
+        document.getElementById('loading').classList.add('hidden');
+      });
+    }
+
+    // ===== Render All =====
+    function renderAll() {
+      renderStats();
+      renderRecentCases();
+      renderCases();
+    }
+
+    // ===== Stats =====
+    function renderStats() {
+      const total = cases.length;
+      const counts = { executed: 0, under_review: 0, under_procedure: 0, responded: 0, rejected: 0 };
+      let totalDocs = 0;
+      cases.forEach(c => {
+        if (counts[c.status] !== undefined) counts[c.status]++;
+        if (c.documents) totalDocs += c.documents.length;
+      });
+
+      document.getElementById('statTotal').textContent = total;
+      document.getElementById('statExecuted').textContent = counts.executed;
+      document.getElementById('statReview').textContent = counts.under_review;
+      document.getElementById('statProcedure').textContent = counts.under_procedure;
+      document.getElementById('statResponded').textContent = counts.responded;
+      document.getElementById('statRejected').textContent = counts.rejected;
+      document.getElementById('homeTotalLine').textContent = total + ' طلب مسجل في النظام';
+
+      document.getElementById('settTotal').textContent = total;
+      document.getElementById('settDocs').textContent = totalDocs;
+    }
+
+    // ===== Recent Cases =====
+    function renderRecentCases() {
+      const container = document.getElementById('recentCases');
+      const recent = [...cases].sort((a, b) => b.createdAt - a.createdAt).slice(0, 5);
+
+      if (recent.length === 0) {
+        container.innerHTML = '<div class="empty-state"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg><p>لا توجد طلبات بعد</p><a onclick="switchTab(\'add\')">إضافة طلب جديد</a></div>';
+        return;
+      }
+
+      container.innerHTML = recent.map(c => caseCardHTML(c)).join('');
+    }
+
+    // ===== Case Card HTML =====
+    function caseCardHTML(c) {
+      const waLink = c.personPhone ? `<a href="https://wa.me/2${c.personPhone.replace(/^0/, '')}" target="_blank" class="wa-btn" onclick="event.stopPropagation()">${waSvg}</a>` : '';
+      const time = new Date(c.createdAt).toLocaleDateString('ar-EG', { month: 'short', day: 'numeric' });
+
+      return `<div class="case-card" onclick="viewCase('${c.id}')">
+        <div class="case-top">
+          <div class="case-info">
+            <div class="case-meta">
+              <span class="case-number">#${c.caseNumber}</span>
+              <span class="case-dot" style="background:${STATUS_COLORS[c.status]}"></span>
+              <span class="case-time">${time}</span>
+            </div>
+            <div class="case-name">${escHtml(c.personName)}</div>
+            <div class="case-service">${escHtml(c.serviceType)}</div>
+          </div>
+          <div class="case-actions">
+            <span class="status-badge" style="background:${STATUS_COLORS[c.status]}">${STATUS_LABELS[c.status]}</span>
+            ${waLink}
+          </div>
+        </div>
+      </div>`;
+    }
+
+    function escHtml(s) {
+      if (!s) return '';
+      const d = document.createElement('div');
+      d.textContent = s;
+      return d.innerHTML;
+    }
+
+    // ===== Cases List =====
+    function renderCases() {
+      const container = document.getElementById('casesList');
+      let filtered = [...cases];
+
+      if (caseFilterStatus !== 'all') {
+        filtered = filtered.filter(c => c.status === caseFilterStatus);
+      }
+
+      const q = (document.getElementById('casesSearch')?.value || '').trim().toLowerCase();
+      if (q) {
+        filtered = filtered.filter(c =>
+          c.personName.toLowerCase().includes(q) ||
+          c.caseNumber.toLowerCase().includes(q) ||
+          (c.nationalId || '').includes(q) ||
+          (c.personPhone || '').includes(q)
+        );
+      }
+
+      filtered.sort((a, b) => b.createdAt - a.createdAt);
+
+      if (filtered.length === 0) {
+        container.innerHTML = '<div class="empty-state"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg><p>لا توجد طلبات</p></div>';
+        return;
+      }
+
+      container.innerHTML = filtered.map(c => caseCardHTML(c)).join('');
+    }
+
+    // ===== Filters =====
+    function toggleCasesFilter() {
+      const el = document.getElementById('casesFilters');
+      el.classList.toggle('hidden');
+      document.getElementById('casesFilterBtn').classList.toggle('active');
+    }
+
+    function setCaseFilter(status, btn) {
+      caseFilterStatus = status;
+      document.querySelectorAll('#casesFilters .pill').forEach(p => p.classList.remove('active'));
+      btn.classList.add('active');
+      renderCases();
+    }
+
+    function filterByStatus(status) {
+      caseFilterStatus = status;
+      switchTab('cases');
+      // update filter pills
+      document.querySelectorAll('#casesFilters .pill').forEach(p => {
+        p.classList.toggle('active', p.textContent === (status === 'all' ? 'الكل' : STATUS_LABELS[status]));
+      });
+    }
+
+    function toggleSearchFilter() {
+      const el = document.getElementById('searchFilters');
+      el.classList.toggle('hidden');
+      document.getElementById('searchFilterBtn').classList.toggle('active');
+    }
+
+    function setSearchFilter(status, btn) {
+      searchFilterStatus = status;
+      document.querySelectorAll('#searchFilters .pill').forEach(p => p.classList.remove('active'));
+      btn.classList.add('active');
+      renderSearch();
+    }
+
+    // ===== Search =====
+    function renderSearch() {
+      const container = document.getElementById('searchResults');
+      const q = (document.getElementById('globalSearch')?.value || '').trim().toLowerCase();
+
+      if (!q && searchFilterStatus === 'all') {
+        container.innerHTML = '<div class="empty-state"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><p>ابحث عن طلب</p><p style="font-size:12px;color:#cbd5e1;margin-top:4px">أدخل اسم الشخص أو رقم الحالة أو الرقم القومي</p></div>';
+        return;
+      }
+
+      let filtered = [...cases];
+
+      if (searchFilterStatus !== 'all') {
+        filtered = filtered.filter(c => c.status === searchFilterStatus);
+      }
+
+      if (q) {
+        filtered = filtered.filter(c =>
+          c.personName.toLowerCase().includes(q) ||
+          c.caseNumber.toLowerCase().includes(q) ||
+          (c.nationalId || '').includes(q) ||
+          (c.personPhone || '').includes(q) ||
+          (c.serviceType || '').toLowerCase().includes(q) ||
+          (c.description || '').toLowerCase().includes(q)
+        );
+      }
+
+      if (filtered.length === 0) {
+        container.innerHTML = '<div class="empty-state"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><p>لا توجد نتائج</p></div>';
+        return;
+      }
+
+      container.innerHTML = '<p style="font-size:13px;color:var(--text2);margin-bottom:10px">' + filtered.length + ' نتيجة</p>' +
+        filtered.map(c => caseCardHTML(c)).join('');
+    }
+
+    // ===== View Case Detail =====
+    function viewCase(id) {
+      const c = cases.find(x => x.id === id);
+      if (!c) return;
+
+      const waBtn = c.personPhone ? `<a href="https://wa.me/2${c.personPhone.replace(/^0/, '')}" target="_blank" class="wa-btn" style="width:36px;height:36px">${waSvg}</a>` : '';
+
+      let html = `<div class="detail-card">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+          <div style="display:flex;align-items:center;gap:8px">
+            <span class="case-number">#${c.caseNumber}</span>
+            <span class="status-badge" style="background:${STATUS_COLORS[c.status]}">${STATUS_LABELS[c.status]}</span>
+          </div>
+          ${waBtn}
+        </div>
+
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
+          <div style="width:36px;height:36px;border-radius:50%;background:#f0fdfa;display:flex;align-items:center;justify-content:center">
+            <span style="color:var(--teal);font-weight:700;font-size:14px">${c.personName.charAt(0)}</span>
+          </div>
+          <strong style="font-size:16px">${escHtml(c.personName)}</strong>
+        </div>
+
+        <div class="detail-row"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg><span class="lbl">رقم الهاتف:</span><span class="val">${escHtml(c.personPhone) || '—'}</span></div>
+        <div class="detail-row"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg><span class="lbl">الرقم القومي:</span><span class="val">${escHtml(c.nationalId) || '—'}</span></div>
+
+        <div class="detail-sep">
+          <div class="detail-label">نوع الخدمة</div>
+          <span class="status-badge" style="background:#f0fdfa;color:var(--teal);font-size:13px">${escHtml(c.serviceType)}</span>
+        </div>`;
+
+      if (c.description) {
+        html += `<div class="detail-sep"><div class="detail-label">الوصف</div><p style="font-size:13px;line-height:1.6">${escHtml(c.description)}</p></div>`;
+      }
+
+      if (c.status === 'responded' && c.response) {
+        html += `<div class="detail-sep"><div class="detail-label">الرد</div><div class="response-box violet">${escHtml(c.response)}</div></div>`;
+      }
+
+      if (c.status === 'rejected' && c.rejectionReason) {
+        html += `<div class="detail-sep"><div class="detail-label">سبب الرفض</div><div class="response-box red">${escHtml(c.rejectionReason)}</div></div>`;
+      }
+
+      if (c.documents && c.documents.length > 0) {
+        html += `<div class="detail-sep"><div class="detail-label">المستندات (${c.documents.length})</div>${c.documents.map(d => {
+          const isImage = d.type && d.type.startsWith('image/');
+          const icon = isImage
+            ? '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#0d9488" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>'
+            : '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--text3)" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>';
+          const sizeStr = d.size ? `<span style="font-size:10px;color:var(--text3)">${(d.size/1024).toFixed(0)}KB</span>` : '';
+          return `<a href="${d.url}" target="_blank" style="display:flex;align-items:center;gap:8px;padding:8px;background:#f8fafc;border-radius:8px;margin-top:4px;text-decoration:none;color:var(--text)">
+            ${icon}
+            <span style="font-size:13px;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escHtml(d.name)}</span>
+            ${sizeStr}
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--text3)" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          </a>`;
+        }).join('')}</div>`;
+      }
+
+      const created = new Date(c.createdAt).toLocaleDateString('ar-EG', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+      html += `<div class="detail-sep" style="font-size:12px;color:var(--text3)">تاريخ الإنشاء: ${created}</div></div>`;
+
+      html += `<div class="actions-row">
+        <button class="btn btn-primary" onclick="editCase('${c.id}')">تعديل</button>
+        <button class="btn btn-danger" onclick="confirmDelete('${c.id}')">حذف</button>
+      </div>`;
+
+      document.getElementById('detailContent').innerHTML = html;
+      switchTab('detail');
+    }
+
+    // ===== Delete =====
+    async function confirmDelete(id) {
+      if (!confirm('هل أنت متأكد من حذف هذا الطلب؟')) return;
+
+      try {
+        // Delete associated files from Telegram channel
+        const c = cases.find(x => x.id === id);
+        if (c && c.documents) {
+          for (const doc of c.documents) {
+            if (doc.telegramMessageId && BOT_TOKEN && CHANNEL_ID) {
+              try {
+                await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/deleteMessage`, {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ chat_id: CHANNEL_ID, message_id: doc.telegramMessageId })
+                });
+              } catch(e) {}
+            }
+          }
+        }
+        await db.ref('cases/' + id).remove();
+        showToast('تم حذف الطلب');
+        switchTab('cases');
+      } catch (err) {
+        showToast('خطأ في الحذف');
+      }
+    }
+
+    // ===== Edit =====
+    function editCase(id) {
+      const c = cases.find(x => x.id === id);
+      if (!c) return;
+
+      editingCaseId = id;
+      document.getElementById('formTitle').textContent = 'تعديل الطلب';
+      document.getElementById('saveBtn').textContent = 'تحديث الطلب';
+      document.getElementById('fName').value = c.personName;
+      document.getElementById('fPhone').value = c.personPhone || '';
+      document.getElementById('fNationalId').value = c.nationalId || '';
+      document.getElementById('fService').value = c.serviceType;
+      document.getElementById('fDesc').value = c.description || '';
+      document.getElementById('fStatus').value = c.status;
+      document.getElementById('fResponse').value = c.response || '';
+      document.getElementById('fRejection').value = c.rejectionReason || '';
+      uploadedDocs = c.documents ? [...c.documents] : [];
+      renderDocsList();
+      toggleStatusFields();
+      switchTab('add');
+    }
+
+    // ===== New Case =====
+    function openNewCase() {
+      editingCaseId = null;
+      document.getElementById('formTitle').textContent = 'طلب جديد';
+      document.getElementById('saveBtn').textContent = 'حفظ الطلب';
+      document.getElementById('fName').value = '';
+      document.getElementById('fPhone').value = '';
+      document.getElementById('fNationalId').value = '';
+      document.getElementById('fService').value = '';
+      document.getElementById('fDesc').value = '';
+      document.getElementById('fStatus').value = 'under_review';
+      document.getElementById('fResponse').value = '';
+      document.getElementById('fRejection').value = '';
+      uploadedDocs = [];
+      renderDocsList();
+      toggleStatusFields();
+      switchTab('add');
+    }
+
+    function cancelForm() {
+      editingCaseId = null;
+      switchTab('cases');
+    }
+
+    // ===== Toggle Status Fields =====
+    function toggleStatusFields() {
+      const s = document.getElementById('fStatus').value;
+      document.getElementById('responseGroup').classList.toggle('hidden', s !== 'responded');
+      document.getElementById('rejectionGroup').classList.toggle('hidden', s !== 'rejected');
+    }
+
+    // ===== Telegram Bot Config =====
+    // ضع توكن البوت ومعرف القناة هنا
+    const BOT_TOKEN = '';  // مثال: '123456:ABC-DEF...'
+    const CHANNEL_ID = ''; // مثال: '-1001234567890'
+
+    // ===== File Upload via Telegram =====
+    let uploadingFiles = false;
+
+    async function uploadToTelegram(file) {
+      if (!BOT_TOKEN || !CHANNEL_ID) {
+        throw new Error('BOT_TOKEN أو CHANNEL_ID غير مضبوطين');
+      }
+
+      const formData = new FormData();
+      formData.append('chat_id', CHANNEL_ID);
+      formData.append('document', file);
+      formData.append('caption', '📁 ' + file.name);
+
+      const res = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendDocument`, {
+        method: 'POST',
+        body: formData
+      });
+
+      const data = await res.json();
+      if (!data.ok) throw new Error(data.description || 'Telegram upload failed');
+
+      return {
+        telegramFileId: data.result.document.file_id,
+        telegramMessageId: data.result.message_id,
+        url: `https://api.telegram.org/file/bot${BOT_TOKEN}/${data.result.document.file_id}`
+      };
+    }
+
+    async function handleFileUpload(files) {
+      if (!files || files.length === 0) return;
+      uploadingFiles = true;
+      renderDocsList();
+
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        try {
+          if (BOT_TOKEN && CHANNEL_ID) {
+            // رفع على قناة تليجرام
+            const result = await uploadToTelegram(file);
+            uploadedDocs.push({
+              name: file.name,
+              url: result.url,
+              telegramFileId: result.telegramFileId,
+              telegramMessageId: result.telegramMessageId,
+              type: file.type,
+              size: file.size
+            });
+            showToast(`تم رفع: ${file.name} ✅`);
+          } else {
+            // بدون بوت: حفظ محلي كـ base64
+            const base64 = await fileToBase64(file);
+            uploadedDocs.push({
+              name: file.name,
+              url: base64,
+              type: file.type,
+              size: file.size,
+              isBase64: true
+            });
+            showToast(`تم حفظ: ${file.name} (محلي)`);
+          }
+        } catch (err) {
+          console.error('Upload error:', err);
+          // Fallback to base64
+          try {
+            const base64 = await fileToBase64(file);
+            uploadedDocs.push({
+              name: file.name,
+              url: base64,
+              type: file.type,
+              size: file.size,
+              isBase64: true
+            });
+            showToast(`تم حفظ: ${file.name} (محلي)`);
+          } catch (e2) {
+            showToast(`فشل رفع: ${file.name}`);
+          }
+        }
+        renderDocsList();
+      }
+
+      uploadingFiles = false;
+      renderDocsList();
+      document.getElementById('fileInput').value = '';
+    }
+
+    function fileToBase64(file) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = (e) => resolve(e.target.result);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+    }
+
+    function renderDocsList() {
+      const container = document.getElementById('docsList');
+
+      // Show uploading indicator
+      if (uploadingFiles) {
+        container.innerHTML = '<div class="doc-item"><div class="spinner" style="width:16px;height:16px;border-color:rgba(13,148,136,0.2);border-top-color:var(--teal)"></div><span style="color:var(--teal);font-size:13px">جاري رفع المستندات...</span></div>';
+        return;
+      }
+
+      if (uploadedDocs.length === 0) { container.innerHTML = ''; return; }
+      container.innerHTML = uploadedDocs.map((d, i) => {
+        const isImage = d.type && d.type.startsWith('image/');
+        const icon = isImage
+          ? '<svg viewBox="0 0 24 24" fill="none" stroke="#0d9488" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>'
+          : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>';
+        const sizeStr = d.size ? ` (${(d.size / 1024).toFixed(0)} KB)` : '';
+        return `<div class="doc-item">
+          ${icon}
+          <span>${escHtml(d.name)}${sizeStr}</span>
+          <button class="doc-remove" onclick="removeDoc(${i})"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+        </div>`;
+      }).join('');
+    }
+
+    async function removeDoc(i) {
+      const doc = uploadedDocs[i];
+      // If file is in Telegram channel, delete the message
+      if (doc.telegramMessageId && BOT_TOKEN && CHANNEL_ID) {
+        try {
+          await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/deleteMessage`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ chat_id: CHANNEL_ID, message_id: doc.telegramMessageId })
+          });
+        } catch (err) {
+          console.log('Telegram delete error:', err);
+        }
+      }
+      uploadedDocs.splice(i, 1);
+      renderDocsList();
+    }
+
+    // ===== Save Case =====
+    async function saveCase() {
+      const name = document.getElementById('fName').value.trim();
+      const service = document.getElementById('fService').value;
+
+      if (!name) { showToast('يرجى إدخال اسم الشخص'); return; }
+      if (!service) { showToast('يرجى اختيار نوع الخدمة'); return; }
+
+      const now = Date.now();
+      const data = {
+        personName: name,
+        personPhone: document.getElementById('fPhone').value.trim(),
+        nationalId: document.getElementById('fNationalId').value.trim(),
+        serviceType: service,
+        description: document.getElementById('fDesc').value.trim(),
+        status: document.getElementById('fStatus').value,
+        response: document.getElementById('fResponse').value.trim(),
+        rejectionReason: document.getElementById('fRejection').value.trim(),
+        documents: uploadedDocs,
+        updatedAt: now
+      };
+
+      try {
+        if (editingCaseId) {
+          // Update
+          await db.ref('cases/' + editingCaseId).update(data);
+          showToast('تم تحديث الطلب');
+        } else {
+          // Create
+          const now2 = new Date();
+          const caseNumber = 'EA-' + now2.getFullYear() + String(now2.getMonth() + 1).padStart(2, '0') + '-' + String(cases.length + 1).padStart(4, '0');
+          const newRef = db.ref('cases').push();
+          data.id = newRef.key;
+          data.caseNumber = caseNumber;
+          data.createdAt = now;
+          await newRef.set(data);
+          showToast('تم إنشاء الطلب ' + caseNumber);
+        }
+
+        editingCaseId = null;
+        openNewCase();
+        switchTab('cases');
+      } catch (err) {
+        showToast('خطأ في الحفظ: ' + err.message);
+      }
+    }
+
+    // ===== Tab Switching =====
+    function switchTab(tab) {
+      currentTab = tab;
+
+      // Hide all pages
+      document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+
+      // Show target page
+      const pageMap = {
+        home: 'pageHome',
+        cases: 'pageCases',
+        add: 'pageAdd',
+        detail: 'pageDetail',
+        search: 'pageSearch',
+        settings: 'pageSettings'
+      };
+
+      const target = document.getElementById(pageMap[tab]);
+      if (target) target.classList.add('active');
+
+      // Update nav active state
+      document.querySelectorAll('.nav-item').forEach(n => {
+        n.classList.toggle('active', n.dataset.tab === tab);
+      });
+
+      // Scroll to top
+      window.scrollTo(0, 0);
+    }
+
+    // ===== PWA: Register Service Worker =====
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('sw.js').catch(() => {});
+      });
+    }
+  </script>
+</body>
+</html>
