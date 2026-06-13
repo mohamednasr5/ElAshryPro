@@ -5,27 +5,28 @@ on:
     branches: [main]
   workflow_dispatch:
   schedule:
-    - cron: '0 */5 * * *'  # كل 5 ساعات تلقائياً
+    - cron: '0 */5 * * *'   # يعيد التشغيل كل 5 ساعات تلقائياً
 
 jobs:
   run-bot:
     runs-on: ubuntu-latest
-    timeout-minutes: 300
+    timeout-minutes: 300     # 5 ساعات كحد أقصى للـ job
 
     steps:
-      - name: Checkout code
+      - name: ✅ Checkout code
         uses: actions/checkout@v4
 
-      - name: Setup Node.js
+      - name: ✅ Setup Node.js 20
         uses: actions/setup-node@v4
         with:
           node-version: '20'
 
-      - name: Install dependencies
+      - name: ✅ Install dependencies
         run: npm install
 
-      - name: Run Bot
+      - name: 🤖 Run El Ashry Pro Bot
         env:
-          BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
-          CHANNEL_ID: ${{ secrets.CHANNEL_ID }}
+          BOT_TOKEN:    ${{ secrets.BOT_TOKEN }}
+          CHANNEL_ID:   ${{ secrets.CHANNEL_ID }}
+          BOT_PASSWORD: ${{ secrets.BOT_PASSWORD }}
         run: node bot.js
