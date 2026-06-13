@@ -368,61 +368,32 @@ function confirmDeleteKeyboard(caseId) {
   };
 }
 
-// ===== Persistent Reply Keyboard (الأزرار الثابتة في الأسفل) =====
-function mainReplyKeyboard() {
-  return {
-    keyboard: [
-      [
-        { text: "📋 الطلبات" },
-        { text: "➕ طلب جديد" },
-        { text: "🔍 بحث" }
-      ],
-      [
-        { text: "📂 مستندات" },
-        { text: "📊 إحصائيات" },
-        { text: "❓ مساعدة" }
-      ]
-    ],
-    resize_keyboard:   true,   // تصغير الكيبورد تلقائياً
-    persistent:        true,   // يبقى ثابتاً في الأسفل دائماً
-    input_field_placeholder: "اكتب أمراً أو اختر من القائمة..."
-  };
-}
-
 // ===== Set Bot Menu Button =====
 async function setBotMenuButton() {
   try {
-    // Set slash commands list
     await tg("setMyCommands", {
       commands: [
-        { command: "menu",      description: "📋 القائمة الرئيسية" },
-        { command: "add",       description: "➕ إضافة طلب جديد" },
-        { command: "search",    description: "🔍 بحث عن طلب" },
-        { command: "documents", description: "📂 رفع مستندات" },
-        { command: "cases",     description: "📋 عرض كل الطلبات" },
-        { command: "stats",     description: "📊 الإحصائيات" },
-        { command: "help",      description: "❓ المساعدة" },
-        { command: "logout",    description: "🔒 تسجيل الخروج" }
+        { command: "menu",      description: "القائمة الرئيسية" },
+        { command: "add",       description: "إضافة طلب جديد" },
+        { command: "search",    description: "بحث عن طلب" },
+        { command: "documents", description: "رفع مستندات" },
+        { command: "cases",     description: "عرض كل الطلبات" },
+        { command: "stats",     description: "الإحصائيات" },
+        { command: "help",      description: "المساعدة" },
+        { command: "logout",    description: "تسجيل الخروج" }
       ]
     });
 
-    // Set menu button type to commands
     await tg("setChatMenuButton", {
-      menu_button: { type: "commands" }
+      menu_button: {
+        type: "commands"
+      }
     });
 
-    console.log("✅ تم ضبط أزرار القائمة الدائمة والأوامر");
+    console.log("✅ تم ضبط أزرار القائمة الدائمة");
   } catch(e) {
     console.error("setBotMenuButton:", e);
   }
-}
-
-// ===== Send With Persistent Keyboard =====
-async function sendWithMenu(chatId, text, extra = {}) {
-  return sendMessage(chatId, text, {
-    reply_markup: mainReplyKeyboard(),
-    ...extra
-  });
 }
 
 // ===== Handle Update =====
@@ -439,13 +410,13 @@ async function handleUpdate(update) {
     // ---- Auth ----
     if (!authUsers.has(chatId)) {
       if (text.trim() === BOT_PASSWORD || text.startsWith("/start " + BOT_PASSWORD)) {
-        await persistAuthAdd(chatId);\n        await sendMessage(chatId,
+        await persistAuthAdd(chatId);
+        await sendMessage(chatId,
           `✅ <b>تم تسجيل الدخول بنجاح!</b>\n\n` +
           `مرحباً بك في نظام <b>El Ashry Pro</b> 🏥\n` +
           `مكتب الحاج أحمد الحديدي - عضو مجلس النواب\n\n` +
-          `يمكنك التحكم الكامل في جميع الحالات من هنا\n\n` +
-          `<i>📌 ستظهر لك قائمة الأزرار الثابتة في الأسفل تلقائياً</i>`,
-          { reply_markup: mainReplyKeyboard() }
+          `يمكنك التحكم الكامل في جميع الحالات من هنا`,
+          { reply_markup: mainMenuKeyboard() }
         );
       } else if (text.startsWith("/start")) {
         await sendMessage(chatId,
@@ -464,30 +435,16 @@ async function handleUpdate(update) {
     // ---- Standalone File Upload ----
     if (msg.document || msg.photo) { await handleFileUpload(chatId, msg); return; }
 
-    // ---- Reply Keyboard Buttons (الأزرار الثابتة) ----
-    const replyMap = {
-      "📋 الطلبات":   () => showCasesList(chatId),
-      "➕ طلب جديد":  () => startAddCase(chatId),
-      "🔍 بحث":       () => startSearchFlow(chatId),
-      "📂 مستندات":   () => startDocsUpload(chatId),
-      "📊 إحصائيات": () => showStats(chatId),
-      "❓ مساعدة":    () => showHelp(chatId),
-    };
-    if (replyMap[text]) { await replyMap[text](); return; }
-
     // ---- Commands ----
     if (text.startsWith("/start") || text.startsWith("/menu")) {
-      await sendMessage(chatId, "📋 <b>القائمة الرئيسية</b>", { reply_markup: mainReplyKeyboard() });
+      await sendMessage(chatId, "📋 <b>القائمة الرئيسية</b>", { reply_markup: mainMenuKeyboard() });
       return;
     }
-    if (text.startsWith("/help"))   { await showHelp(chatId); return; }
+    if (text.startsWith("/help")) { await showHelp(chatId); return; }
     if (text.startsWith("/logout")) {
       await persistAuthRemove(chatId);
       await deleteSession(chatId);
-      await tg("sendMessage", {
-        chat_id: chatId, text: "👋 تم تسجيل الخروج بنجاح",
-        reply_markup: { remove_keyboard: true }
-      });
+      await sendMessage(chatId, "👋 تم تسجيل الخروج بنجاح");
       return;
     }
     if (text.startsWith("/cases"))   { await showCasesList(chatId); return; }
@@ -524,9 +481,7 @@ async function handleUpdate(update) {
       return;
     }
 
-    await sendMessage(chatId, "🤔 أمر غير معروف. اختر من القائمة أدناه 👇", {
-      reply_markup: mainReplyKeyboard()
-    });
+    await sendMessage(chatId, "🤔 أمر غير معروف. اضغط /menu للقائمة الرئيسية");
 
   } catch (err) {
     console.error("handleUpdate error:", err);
@@ -547,7 +502,7 @@ async function handleCallback(cb) {
 
   try {
     if (data === "main_menu") {
-      await sendMessage(chatId, "📋 <b>القائمة الرئيسية</b>", { reply_markup: mainReplyKeyboard() });
+      await sendMessage(chatId, "📋 <b>القائمة الرئيسية</b>", { reply_markup: mainMenuKeyboard() });
     }
     else if (data === "list_cases")   { await showCasesList(chatId); }
     else if (data === "add_case")     { await startAddCase(chatId); }
@@ -593,7 +548,7 @@ async function handleCallback(cb) {
       await deleteCase(id);
       await sendMessage(chatId,
         `🗑 تم حذف الطلب #${c?.caseNumber || id} بنجاح`,
-        { reply_markup: mainReplyKeyboard() }
+        { reply_markup: mainMenuKeyboard() }
       );
     }
     else if (data.startsWith("respond_")) {
@@ -754,7 +709,7 @@ async function handleSession(chatId, msg, session) {
         await deleteSession(chatId);
         await sendMessage(chatId,
           `✅ <b>تم إنشاء الطلب بنجاح!</b>\n\n${formatCase(newCase)}`,
-          { reply_markup: mainReplyKeyboard() }
+          { reply_markup: mainMenuKeyboard() }
         );
       } else if (msg.document || msg.photo) {
         if ((session.documents || []).length >= MAX_DOCS) {
@@ -826,12 +781,6 @@ async function handleServiceSelection(chatId, serviceIndex, session) {
   await sendMessage(chatId, `📝 اكتب وصف الحالة:\n(أو أرسل <code>تخطي</code>)`);
 }
 
-// ===== Search Flow Start =====
-async function startSearchFlow(chatId) {
-  await persistSession(chatId, { state: "search_awaiting_query" });
-  await sendMessage(chatId, "🔍 أرسل اسم الشخص أو رقم الطلب للبحث:\n\n<i>البحث يدعم اللغة العربية بصورة ذكية ويتجاهل الفرق في الهمزات والتشكيل</i>");
-}
-
 // ===== Add Case =====
 async function startAddCase(chatId) {
   await persistSession(chatId, { state: "add_name" });
@@ -842,9 +791,7 @@ async function startAddCase(chatId) {
 async function showCasesList(chatId) {
   const cases = await getAllCases();
   if (cases.length === 0) {
-    await sendMessage(chatId, "📋 لا توجد طلبات بعد\nاستخدم /add لإضافة طلب جديد", {
-      reply_markup: mainReplyKeyboard()
-    });
+    await sendMessage(chatId, "📋 لا توجد طلبات بعد\nاستخدم /add لإضافة طلب جديد", { reply_markup: mainMenuKeyboard() });
     return;
   }
   const sorted = cases.sort((a,b) => b.createdAt - a.createdAt);
@@ -966,7 +913,7 @@ async function handleDocsFile(chatId, msg, session) {
     await deleteSession(chatId);
     await sendMessage(chatId,
       `✅ تم حفظ ${session.documents.length} مستند لطلب #${session.caseNumber}`,
-      { reply_markup: mainReplyKeyboard() }
+      { reply_markup: mainMenuKeyboard() }
     );
     return;
   }
@@ -1002,7 +949,7 @@ async function handleDocsFile(chatId, msg, session) {
 async function doSearch(chatId, query) {
   const results = await searchCases(query);
   if (results.length === 0) {
-    await sendMessage(chatId, `🔍 لا توجد نتائج لـ: "${query}"`, { reply_markup: mainReplyKeyboard() });
+    await sendMessage(chatId, `🔍 لا توجد نتائج لـ: "${query}"`, { reply_markup: mainMenuKeyboard() });
     return;
   }
   const sorted = results.sort((a,b) => b.createdAt - a.createdAt);
@@ -1040,36 +987,28 @@ async function showStats(chatId) {
     topCountries.forEach(([c,n]) => { text += `  • ${c}: ${n}\n`; });
   }
 
-  await sendMessage(chatId, text, { reply_markup: mainReplyKeyboard() });
+  await sendMessage(chatId, text, { reply_markup: mainMenuKeyboard() });
 }
 
 // ===== Help =====
 async function showHelp(chatId) {
   await sendMessage(chatId,
     `📋 <b>دليل الاستخدام - El Ashry Pro v4</b>\n\n` +
-    `<b>القائمة الثابتة في الأسفل:</b>\n` +
-    `📋 الطلبات - عرض جميع الطلبات\n` +
-    `➕ طلب جديد - إضافة طلب جديد\n` +
-    `🔍 بحث - البحث الذكي\n` +
-    `📂 مستندات - رفع مستندات\n` +
-    `📊 إحصائيات - الإحصائيات\n\n` +
-    `<b>الأوامر النصية:</b>\n` +
+    `<b>الأوامر الرئيسية:</b>\n` +
+    `/menu - القائمة الرئيسية\n` +
     `/add - إضافة طلب جديد\n` +
     `/cases - عرض كل الطلبات\n` +
-    `/search أحمد - بحث بالاسم أو الرقم\n` +
+    `/search أحمد - بحث ذكي بالاسم أو الرقم\n` +
     `/documents - رفع مستندات لطلب\n` +
-    `/attach 5 - إرفاق ملف بطلب رقم 5\n` +
     `/stats - الإحصائيات\n` +
     `/logout - تسجيل الخروج\n\n` +
-    `<b>رفع المستندات على التلجرام:</b>\n` +
-    `📎 يمكنك رفع أي ملف (PDF/صورة/وثيقة) مباشرة في المحادثة وسيُحفظ في القناة وربطه بالطلب\n\n` +
-    `<b>ميزات النظام:</b>\n` +
-    `🌍 دعم البلد والمستشفى\n` +
-    `📅 تواريخ تقديم ورد\n` +
-    `🔍 بحث عربي ذكي\n` +
-    `📤 مشاركة واتساب\n` +
-    `📎 حتى ${MAX_DOCS} مستندات لكل طلب`,
-    { reply_markup: mainReplyKeyboard() }
+    `<b>ميزات جديدة:</b>\n` +
+    `🌍 إضافة الدولة والمستشفى للطلبات\n` +
+    `📅 تواريخ تقديم الطلب والرد\n` +
+    `🔍 بحث عربي ذكي (يتجاهل الهمزات والتشكيل)\n` +
+    `📤 مشاركة الطلب عبر واتساب مباشرة\n` +
+    `📎 رفع حتى ${MAX_DOCS} مستندات لكل طلب`,
+    { reply_markup: mainMenuKeyboard() }
   );
 }
 
@@ -1130,7 +1069,7 @@ async function handleAttachFile(chatId, msg, session) {
     await deleteSession(chatId);
     await sendMessage(chatId,
       `✅ تم حفظ ${session.documents.length} مستند لطلب #${session.caseNumber}`,
-      { reply_markup: mainReplyKeyboard() }
+      { reply_markup: mainMenuKeyboard() }
     );
     return;
   }
