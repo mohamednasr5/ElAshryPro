@@ -111,6 +111,7 @@
     .btn-danger  { background: var(--red);  color: #fff; }
     .btn-outline { background: #f0fdfa; color: var(--teal); border: 1px solid var(--teal); }
     .btn-wa      { background: var(--green-wa); color: #fff; }
+    .btn svg { width: 18px; height: 18px; flex-shrink: 0; }
 
     /* ========== APP ========== */
     .app { display: none; }
@@ -242,12 +243,24 @@
       font-size: 11px; color: #fff; padding: 2px 8px;
       border-radius: 20px; font-weight: 600; white-space: nowrap;
     }
+    
     .wa-btn {
-      width: 36px; height: 36px; border-radius: 50%;
+      width: 36px; height: 36px; min-width: 36px; min-height: 36px; max-width: 36px; max-height: 36px;
+      border-radius: 50%;
       background: var(--green-wa); display: flex;
       align-items: center; justify-content: center; flex-shrink: 0;
+      overflow: hidden; cursor: pointer; border: none;
+      text-decoration: none;
     }
-    .wa-btn svg { width: 18px; height: 18px; fill: #fff; }
+    .wa-btn svg { 
+      width: 18px !important; height: 18px !important; 
+      min-width: 18px; min-height: 18px; 
+      max-width: 18px; max-height: 18px;
+      fill: #fff; flex-shrink: 0; 
+    }
+    
+    .case-card svg, .detail-card svg { max-width: 20px; max-height: 20px; flex-shrink: 0; }
+    .share-row .btn svg, .actions-row .btn svg { width: 18px; height: 18px; flex-shrink: 0; }
 
     /* ========== SECTION HEADER ========== */
     .section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
@@ -300,23 +313,6 @@
     }
     .form-input:focus, .form-select:focus, .form-textarea:focus { border-color: var(--teal); }
     .form-textarea { min-height: 80px; resize: none; }
-
-    /* Country Select2 */
-    .country-select-wrap { position: relative; }
-    .country-search {
-      position: absolute; top: 100%; right: 0; left: 0;
-      background: #fff; border: 1.5px solid var(--teal);
-      border-radius: 10px; z-index: 50;
-      max-height: 200px; overflow-y: auto;
-      box-shadow: 0 4px 16px rgba(0,0,0,0.1);
-    }
-    .country-search input {
-      width: 100%; border: none; border-bottom: 1px solid var(--border);
-      padding: 10px 12px; font-family: 'Cairo', sans-serif;
-      font-size: 14px; outline: none;
-    }
-    .country-option { padding: 10px 14px; cursor: pointer; font-size: 14px; }
-    .country-option:hover { background: #f0fdfa; }
 
     /* Upload area */
     .upload-area {
@@ -576,7 +572,7 @@
 
       <div class="search-box">
         <svg class="search-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-        <input type="text" id="casesSearch" placeholder="بحث بالاسم أو الرقم أو الدولة..." oninput="renderCases()">
+        <input type="text" id="casesSearch" placeholder="بحث بالاسم أو الرقم أو البلد..." oninput="renderCases()">
         <button class="voice-btn" id="casesVoiceBtn" title="بحث صوتي" onclick="startVoiceSearch('casesSearch', renderCases)">
           <svg viewBox="0 0 24 24" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
         </button>
@@ -594,10 +590,9 @@
         <button class="pill" onclick="setCaseFilter('rejected',this)">مرفوض</button>
       </div>
 
-      <!-- Advanced Filters -->
       <div class="filter-section hidden" id="casesAdvancedFilter">
         <div class="form-group" style="margin-bottom:8px">
-          <label>🌍 فلتر بالدولة</label>
+          <label>🏠 فلتر بالبلد</label>
           <input type="text" id="filterCountry" placeholder="مثال: مصر" oninput="renderCases()">
         </div>
         <div class="form-group" style="margin-bottom:0">
@@ -618,7 +613,6 @@
         <h1 style="font-size:18px;font-weight:700" id="formTitle">طلب جديد</h1>
       </div>
 
-      <!-- Section 1: Person Info -->
       <div class="form-card">
         <div class="form-section-title"><div class="section-num">1</div>بيانات الشخص</div>
         <div class="form-group">
@@ -635,17 +629,11 @@
         </div>
       </div>
 
-      <!-- Section 2: Location -->
       <div class="form-card">
         <div class="form-section-title"><div class="section-num">2</div>بيانات الموقع والمستشفى</div>
         <div class="form-group">
-          <label>🌍 الدولة</label>
-          <div class="country-select-wrap">
-            <input class="form-input" id="fCountry" placeholder="اختر أو اكتب الدولة" autocomplete="off" oninput="filterCountries()" onclick="showCountryDropdown()">
-            <div class="country-search hidden" id="countryDropdown">
-              <div id="countryOptions"></div>
-            </div>
-          </div>
+          <label>🏠 البلد</label>
+          <input class="form-input" id="fCountry" placeholder="اكتب اسم البلد">
         </div>
         <div class="form-group">
           <label>🏥 اسم المستشفى</label>
@@ -653,7 +641,6 @@
         </div>
       </div>
 
-      <!-- Section 3: Dates -->
       <div class="form-card">
         <div class="form-section-title"><div class="section-num">3</div>التواريخ</div>
         <div class="form-group">
@@ -666,7 +653,6 @@
         </div>
       </div>
 
-      <!-- Section 4: Service -->
       <div class="form-card">
         <div class="form-section-title"><div class="section-num">4</div>تفاصيل الخدمة</div>
         <div class="form-group">
@@ -688,7 +674,6 @@
         </div>
       </div>
 
-      <!-- Section 5: Status -->
       <div class="form-card">
         <div class="form-section-title"><div class="section-num">5</div>حالة الطلب</div>
         <div class="form-group">
@@ -711,7 +696,6 @@
         </div>
       </div>
 
-      <!-- Section 6: Documents -->
       <div class="form-card">
         <div class="form-section-title"><div class="section-num">6</div>المستندات</div>
         <div class="upload-area" onclick="document.getElementById('fileInput').click()">
@@ -756,7 +740,7 @@
       </div>
       <div class="search-box">
         <svg class="search-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-        <input type="text" id="globalSearch" placeholder="بحث بالاسم أو الرقم أو الدولة..." oninput="renderSearch()" autofocus>
+        <input type="text" id="globalSearch" placeholder="بحث بالاسم أو الرقم أو البلد..." oninput="renderSearch()">
         <button class="voice-btn" id="searchVoiceBtn" title="بحث صوتي" onclick="startVoiceSearch('globalSearch', renderSearch)">
           <svg viewBox="0 0 24 24" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
         </button>
@@ -816,7 +800,7 @@
 
       <div class="form-card" style="padding:8px">
         <a href="https://wa.me/201279934755" target="_blank" class="link-item" style="background:#f0fdf4;border-radius:10px">
-          <div class="link-icon" style="background:#16a34a"><svg viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg></div>
+          <div class="link-icon" style="background:#16a34a"><svg width="20" height="20" viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg></div>
           <div>
             <div class="link-text">واتساب المطور</div>
             <div class="link-sub">المهندس محمد حماد</div>
@@ -892,13 +876,6 @@
       rejected:        "#ef4444"
     };
 
-    const COUNTRIES = [
-      "مصر","السعودية","الإمارات","الكويت","قطر","البحرين","عُمان","الأردن","لبنان",
-      "سوريا","العراق","اليمن","ليبيا","تونس","الجزائر","المغرب","السودان","الصومال",
-      "موريتانيا","فلسطين","أمريكا","بريطانيا","فرنسا","ألمانيا","إيطاليا","إسبانيا",
-      "كندا","أستراليا","الصين","اليابان","الهند","تركيا","إيران","باكستان","روسيا"
-    ];
-
     // ===== State =====
     let cases           = [];
     let currentTab      = "home";
@@ -907,9 +884,10 @@
     let caseFilterStatus    = "all";
     let searchFilterStatus  = "all";
     let currentDetailCase   = null;
+    let nextCaseNumber      = 1;
 
     // ===== WhatsApp SVG =====
-    const waSvg = `<svg viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>`;
+    const waSvg = `<svg width="18" height="18" viewBox="0 0 24 24" style="width:18px;height:18px;min-width:18px;min-height:18px;max-width:18px;max-height:18px;flex-shrink:0"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>`;
 
     // ===== Toast =====
     function showToast(msg, duration = 2500) {
@@ -928,7 +906,7 @@
         .replace(/ئ/g, "ي")
         .replace(/ى/g, "ي")
         .replace(/ة/g, "ه")
-        .replace(/[\u064B-\u065F]/g, "") // Remove tashkeel
+        .replace(/[\u064B-\u065F]/g, "")
         .replace(/\s+/g, " ")
         .trim()
         .toLowerCase();
@@ -953,158 +931,253 @@
       return p ? `https://wa.me/${p}` : null;
     }
 
-    function whatsAppShareLink(c) {
-      let msg = `📋 *طلب رقم ${c.caseNumber}*\n\n`;
-      msg += `👤 الاسم: ${c.personName}\n`;
-      if (c.personPhone)    msg += `📱 الهاتف: ${c.personPhone}\n`;
-      if (c.country)        msg += `🌍 الدولة: ${c.country}\n`;
-      if (c.hospitalName)   msg += `🏥 المستشفى: ${c.hospitalName}\n`;
-      msg += `🩺 الخدمة: ${c.serviceType}\n`;
-      msg += `📌 الحالة: ${STATUS_LABELS[c.status] || c.status}\n`;
-      if (c.submissionDate) msg += `📅 تاريخ الطلب: ${c.submissionDate}\n`;
-      if (c.responseDate)   msg += `📆 تاريخ الرد: ${c.responseDate}\n`;
-      if (c.description)    msg += `📝 الوصف: ${c.description}\n`;
-      return `https://wa.me/?text=${encodeURIComponent(msg)}`;
-    }
-
-    // ===== HTML Escape =====
-    function escHtml(s) {
-      if (!s) return "";
-      return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
-    }
-
     // ===== Login =====
-    document.getElementById('loginForm').addEventListener('submit', function(e) {
+    const loginForm = document.getElementById('loginForm');
+    const passwordInput = document.getElementById('passwordInput');
+    const toggleEye = document.getElementById('toggleEye');
+    const loginError = document.getElementById('loginError');
+    const loginCard = document.getElementById('loginCard');
+    const loginScreen = document.getElementById('loginScreen');
+    const app = document.getElementById('app');
+    const loading = document.getElementById('loading');
+
+    toggleEye.addEventListener('click', () => {
+      const type = passwordInput.type === 'password' ? 'text' : 'password';
+      passwordInput.type = type;
+    });
+
+    loginForm.addEventListener('submit', (e) => {
       e.preventDefault();
-      const pw = document.getElementById('passwordInput').value;
-      if (pw === PASSWORD) {
-        document.getElementById('loginScreen').style.display = 'none';
-        document.getElementById('app').classList.add('active');
-        loadCases();
+      const pass = passwordInput.value.trim();
+      if (pass === PASSWORD) {
+        localStorage.setItem('elAshryAuth', 'true');
+        loginScreen.style.display = 'none';
+        app.classList.add('active');
+        initApp();
       } else {
-        document.getElementById('loginError').textContent = 'كلمة المرور غير صحيحة';
-        document.getElementById('loginCard').classList.add('shake');
-        setTimeout(() => document.getElementById('loginCard').classList.remove('shake'), 500);
+        loginError.textContent = 'كلمة المرور غير صحيحة';
+        loginCard.classList.add('shake');
+        setTimeout(() => loginCard.classList.remove('shake'), 500);
       }
     });
 
-    document.getElementById('toggleEye').addEventListener('click', function() {
-      const inp = document.getElementById('passwordInput');
-      inp.type = inp.type === 'password' ? 'text' : 'password';
-    });
-
-    function logout() {
-      document.getElementById('app').classList.remove('active');
-      document.getElementById('loginScreen').style.display = '';
-      document.getElementById('passwordInput').value = '';
-      document.getElementById('loginError').textContent = '';
+    if (localStorage.getItem('elAshryAuth') === 'true') {
+      loginScreen.style.display = 'none';
+      app.classList.add('active');
+      initApp();
     }
 
-    // ===== Firebase Load =====
-    function loadCases() {
-      document.getElementById('loading').classList.remove('hidden');
+    function logout() {
+      localStorage.removeItem('elAshryAuth');
+      location.reload();
+    }
+
+    // ===== Tab Navigation =====
+    function switchTab(tab) {
+      currentTab = tab;
+      document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+      document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+      
+      const pageMap = { home: 'pageHome', cases: 'pageCases', add: 'pageAdd', detail: 'pageDetail', search: 'pageSearch', settings: 'pageSettings' };
+      const page = document.getElementById(pageMap[tab]);
+      if (page) page.classList.add('active');
+      
+      const navBtn = document.querySelector(`.nav-item[data-tab="${tab}"]`);
+      if (navBtn) navBtn.classList.add('active');
+
+      window.scrollTo(0, 0);
+      
+      if (tab === 'cases') renderCases();
+    }
+
+    // ===== Init App =====
+    function initApp() {
+      showLoading(true);
       db.ref('cases').on('value', (snapshot) => {
-        const data = snapshot.val();
-        cases = data ? Object.values(data) : [];
-        renderAll();
-        document.getElementById('loading').classList.add('hidden');
+        const data = snapshot.val() || {};
+        cases = Object.entries(data).map(([id, val]) => ({ id, ...val }));
+        cases.sort((a, b) => (b.submissionDate || '').localeCompare(a.submissionDate || ''));
+        
+        // حساب الرقم التسلسلي التالي (أكبر رقم + 1)
+        calculateNextCaseNumber();
+        
+        updateStats();
+        renderRecentCases();
+        renderCases();
+        renderSearch();
+        showLoading(false);
       });
     }
 
-    function renderAll() {
-      renderStats();
-      renderRecentCases();
-      renderCases();
-      if (currentTab === 'search') renderSearch();
+    // ===== حساب الرقم التسلسلي التالي =====
+    function calculateNextCaseNumber() {
+      let maxNum = 0;
+      cases.forEach(c => {
+        const num = parseInt(c.caseNumber);
+        if (!isNaN(num) && num > maxNum) {
+          maxNum = num;
+        }
+      });
+      nextCaseNumber = maxNum + 1;
+    }
+
+    function showLoading(show) {
+      loading.classList.toggle('hidden', !show);
     }
 
     // ===== Stats =====
-    function renderStats() {
+    function updateStats() {
       const total = cases.length;
-      const counts = { executed:0, under_review:0, under_procedure:0, responded:0, rejected:0 };
+      const executed = cases.filter(c => c.status === 'executed').length;
+      const review = cases.filter(c => c.status === 'under_review').length;
+      const procedure = cases.filter(c => c.status === 'under_procedure').length;
+      const responded = cases.filter(c => c.status === 'responded').length;
+      const rejected = cases.filter(c => c.status === 'rejected').length;
+
+      document.getElementById('statTotal').textContent = total;
+      document.getElementById('statExecuted').textContent = executed;
+      document.getElementById('statReview').textContent = review;
+      document.getElementById('statProcedure').textContent = procedure;
+      document.getElementById('statResponded').textContent = responded;
+      document.getElementById('statRejected').textContent = rejected;
+
+      document.getElementById('homeTotalLine').textContent = `${total} طلب مسجل في النظام`;
+      document.getElementById('settTotal').textContent = total;
+      
       let totalDocs = 0;
-      cases.forEach(c => {
-        if (counts[c.status] !== undefined) counts[c.status]++;
-        if (c.documents) totalDocs += c.documents.length;
-      });
-      document.getElementById('statTotal').textContent      = total;
-      document.getElementById('statExecuted').textContent   = counts.executed;
-      document.getElementById('statReview').textContent     = counts.under_review;
-      document.getElementById('statProcedure').textContent  = counts.under_procedure;
-      document.getElementById('statResponded').textContent  = counts.responded;
-      document.getElementById('statRejected').textContent   = counts.rejected;
-      document.getElementById('homeTotalLine').textContent  = total + ' طلب مسجل في النظام';
-      document.getElementById('settTotal').textContent      = total;
-      document.getElementById('settDocs').textContent       = totalDocs;
+      cases.forEach(c => { if (c.documents) totalDocs += Object.keys(c.documents).length; });
+      document.getElementById('settDocs').textContent = totalDocs;
+    }
+
+    // ===== Case Card HTML =====
+    function caseCardHTML(c) {
+      const waLink = whatsAppCallLink(c.phone);
+      const statusColor = STATUS_COLORS[c.status] || '#94a3b8';
+      const statusLabel = STATUS_LABELS[c.status] || c.status;
+      
+      return `
+        <div class="case-card" style="border-right-color:${statusColor}" onclick="openDetail('${c.id}')">
+          <div class="case-top">
+            <div class="case-info">
+              <div class="case-meta">
+                <span class="case-number">#${c.caseNumber || '-'}</span>
+                <span class="status-badge" style="background:${statusColor}">${statusLabel}</span>
+              </div>
+              <div class="case-name">${c.name || 'بدون اسم'}</div>
+              <div class="case-sub">${c.service || ''}</div>
+              <div class="case-extra">
+                ${c.country ? `<span>🏠 ${c.country}</span>` : ''}
+                ${c.phone ? `<span>📱 ${c.phone}</span>` : ''}
+                ${c.submissionDate ? `<span>📅 ${c.submissionDate}</span>` : ''}
+              </div>
+            </div>
+            ${waLink ? `<a href="${waLink}" target="_blank" class="wa-btn" onclick="event.stopPropagation()">${waSvg}</a>` : ''}
+          </div>
+        </div>
+      `;
     }
 
     // ===== Recent Cases =====
     function renderRecentCases() {
       const container = document.getElementById('recentCases');
-      const recent = [...cases].sort((a,b) => b.createdAt - a.createdAt).slice(0, 5);
+      const recent = cases.slice(0, 5);
       if (recent.length === 0) {
-        container.innerHTML = '<div class="empty-state"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg><p>لا توجد طلبات بعد</p><a onclick="openNewCase()">إضافة طلب جديد</a></div>';
+        container.innerHTML = `<div class="empty-state"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg><p>لا توجد طلبات بعد</p><a onclick="openNewCase()">إضافة طلب جديد</a></div>`;
         return;
       }
       container.innerHTML = recent.map(c => caseCardHTML(c)).join('');
     }
 
-    // ===== Case Card HTML =====
-    function caseCardHTML(c) {
-      const waLink = c.personPhone ? whatsAppCallLink(c.personPhone) : null;
-      const waBtn = waLink
-        ? `<a href="${waLink}" target="_blank" class="wa-btn" onclick="event.stopPropagation()">${waSvg}</a>`
-        : '';
-      const time = new Date(c.createdAt).toLocaleDateString('ar-EG', { month: 'short', day: 'numeric' });
-      const extras = [];
-      if (c.country)      extras.push(`🌍 ${escHtml(c.country)}`);
-      if (c.hospitalName) extras.push(`🏥 ${escHtml(c.hospitalName)}`);
-      if (c.submissionDate) extras.push(`📅 ${escHtml(c.submissionDate)}`);
-      const extraHtml = extras.length ? `<div class="case-extra">${extras.map(e => `<span>${e}</span>`).join('')}</div>` : '';
+    // ===== Cases List =====
+    function renderCases() {
+      const search = (document.getElementById('casesSearch')?.value || '').trim();
+      const countryFilter = (document.getElementById('filterCountry')?.value || '').trim();
+      const hospitalFilter = (document.getElementById('filterHospital')?.value || '').trim();
+      
+      let filtered = cases;
+      
+      if (caseFilterStatus !== 'all') {
+        filtered = filtered.filter(c => c.status === caseFilterStatus);
+      }
+      if (search) {
+        filtered = filtered.filter(c => 
+          arabicMatch(c.name, search) || 
+          arabicMatch(c.caseNumber?.toString(), search) || 
+          arabicMatch(c.country, search) ||
+          arabicMatch(c.nationalId, search) ||
+          arabicMatch(c.phone, search)
+        );
+      }
+      if (countryFilter) {
+        filtered = filtered.filter(c => arabicMatch(c.country, countryFilter));
+      }
+      if (hospitalFilter) {
+        filtered = filtered.filter(c => arabicMatch(c.hospital, hospitalFilter));
+      }
 
-      return `<div class="case-card" onclick="viewCase('${c.id}')" style="border-right-color:${STATUS_COLORS[c.status] || '#e2e8f0'}">
-        <div class="case-top">
-          <div class="case-info">
-            <div class="case-meta">
-              <span class="case-number">#${escHtml(c.caseNumber)}</span>
-              <span class="status-badge" style="background:${STATUS_COLORS[c.status]}">${STATUS_LABELS[c.status] || c.status}</span>
-            </div>
-            <div class="case-name">${escHtml(c.personName)}</div>
-            <div class="case-sub">${escHtml(c.serviceType)} · ${time}</div>
-            ${extraHtml}
-          </div>
-          ${waBtn}
-        </div>
-      </div>`;
+      const container = document.getElementById('casesList');
+      if (filtered.length === 0) {
+        container.innerHTML = `<div class="empty-state"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg><p>لا توجد نتائج</p></div>`;
+        return;
+      }
+      container.innerHTML = filtered.map(c => caseCardHTML(c)).join('');
     }
 
-    // ===== Filter / Render Cases =====
-    let casesFilterShown = false;
-    function toggleCasesFilter() {
-      casesFilterShown = !casesFilterShown;
-      document.getElementById('casesAdvancedFilter').classList.toggle('hidden', !casesFilterShown);
+    function setCaseFilter(status, btn) {
+      caseFilterStatus = status;
+      document.querySelectorAll('#casesStatusPills .pill').forEach(p => p.classList.remove('active'));
+      btn.classList.add('active');
+      renderCases();
     }
 
     function filterByStatus(status) {
       caseFilterStatus = status;
       switchTab('cases');
       document.querySelectorAll('#casesStatusPills .pill').forEach(p => {
-        p.classList.toggle('active', p.textContent.includes(STATUS_LABELS[status] || 'الكل'));
+        p.classList.toggle('active', p.textContent.trim() === (STATUS_LABELS[status] || 'الكل'));
       });
       renderCases();
     }
 
-    function setCaseFilter(status, el) {
-      caseFilterStatus = status;
-      document.querySelectorAll('#casesStatusPills .pill').forEach(p => p.classList.remove('active'));
-      el.classList.add('active');
-      renderCases();
+    function toggleCasesFilter() {
+      document.getElementById('casesAdvancedFilter').classList.toggle('hidden');
     }
 
-    function setSearchFilter(status, el) {
+    // ===== Search =====
+    function renderSearch() {
+      const query = (document.getElementById('globalSearch')?.value || '').trim();
+      const container = document.getElementById('searchResults');
+      
+      if (!query) {
+        container.innerHTML = `<div class="empty-state"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><p>ابحث عن طلب</p><p style="font-size:12px;color:#cbd5e1;margin-top:4px">أدخل اسم الشخص أو رقم الطلب أو الرقم القومي</p></div>`;
+        return;
+      }
+
+      let filtered = cases.filter(c => 
+        arabicMatch(c.name, query) || 
+        arabicMatch(c.caseNumber?.toString(), query) || 
+        arabicMatch(c.country, query) ||
+        arabicMatch(c.nationalId, query) ||
+        arabicMatch(c.phone, query) ||
+        arabicMatch(c.hospital, query) ||
+        arabicMatch(c.service, query)
+      );
+
+      if (searchFilterStatus !== 'all') {
+        filtered = filtered.filter(c => c.status === searchFilterStatus);
+      }
+
+      if (filtered.length === 0) {
+        container.innerHTML = `<div class="empty-state"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><p>لا توجد نتائج لـ "${query}"</p></div>`;
+        return;
+      }
+      container.innerHTML = filtered.map(c => caseCardHTML(c)).join('');
+    }
+
+    function setSearchFilter(status, btn) {
       searchFilterStatus = status;
       document.querySelectorAll('#searchFilters .pill').forEach(p => p.classList.remove('active'));
-      el.classList.add('active');
+      btn.classList.add('active');
       renderSearch();
     }
 
@@ -1112,577 +1185,380 @@
       document.getElementById('searchFilters').classList.toggle('hidden');
     }
 
-    function renderCases() {
-      const container  = document.getElementById('casesList');
-      const q          = normalizeArabic(document.getElementById('casesSearch').value);
-      const filterCountry   = normalizeArabic(document.getElementById('filterCountry')?.value || "");
-      const filterHospital  = normalizeArabic(document.getElementById('filterHospital')?.value || "");
-
-      let filtered = [...cases].sort((a,b) => b.createdAt - a.createdAt);
-
-      if (caseFilterStatus !== 'all') {
-        filtered = filtered.filter(c => c.status === caseFilterStatus);
-      }
-      if (q) {
-        filtered = filtered.filter(c =>
-          arabicMatch(c.personName,   q) ||
-          (c.caseNumber || "").includes(q) ||
-          (c.nationalId  || "").includes(q) ||
-          (c.personPhone || "").includes(q) ||
-          arabicMatch(c.serviceType  || "", q) ||
-          arabicMatch(c.description  || "", q) ||
-          arabicMatch(c.country      || "", q) ||
-          arabicMatch(c.hospitalName || "", q)
-        );
-      }
-      if (filterCountry) {
-        filtered = filtered.filter(c => arabicMatch(c.country || "", filterCountry));
-      }
-      if (filterHospital) {
-        filtered = filtered.filter(c => arabicMatch(c.hospitalName || "", filterHospital));
-      }
-
-      if (filtered.length === 0) {
-        container.innerHTML = '<div class="empty-state"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><p>لا توجد نتائج</p></div>';
+    // ===== Voice Search - البحث الصوتي الفوري =====
+    function startVoiceSearch(inputId, callback) {
+      if (!('webkitSpeechRecognition' in window || 'SpeechRecognition' in window)) {
+        showToast('البحث الصوتي غير مدعوم في هذا المتصفح');
         return;
       }
-      container.innerHTML = `<p style="font-size:13px;color:var(--text2);margin-bottom:10px">${filtered.length} طلب</p>` +
-        filtered.map(c => caseCardHTML(c)).join('');
-    }
-
-    function renderSearch() {
-      const container = document.getElementById('searchResults');
-      const q = normalizeArabic(document.getElementById('globalSearch')?.value || "");
-      if (!q) {
-        container.innerHTML = '<div class="empty-state"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><p>ابحث عن طلب</p><p style="font-size:12px;color:#cbd5e1;margin-top:4px">يدعم الأسماء بصرف النظر عن الهمزات</p></div>';
-        return;
-      }
-      let filtered = [...cases].filter(c =>
-        arabicMatch(c.personName,   q) ||
-        (c.caseNumber || "").includes(q) ||
-        (c.nationalId  || "").includes(q) ||
-        (c.personPhone || "").includes(q) ||
-        arabicMatch(c.serviceType  || "", q) ||
-        arabicMatch(c.country      || "", q) ||
-        arabicMatch(c.hospitalName || "", q)
-      );
-      if (searchFilterStatus !== 'all') {
-        filtered = filtered.filter(c => c.status === searchFilterStatus);
-      }
-      if (filtered.length === 0) {
-        container.innerHTML = `<div class="empty-state"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><p>لا توجد نتائج لـ "${escHtml(document.getElementById('globalSearch').value)}"</p></div>`;
-        return;
-      }
-      container.innerHTML = `<p style="font-size:13px;color:var(--text2);margin-bottom:10px">${filtered.length} نتيجة</p>` +
-        filtered.map(c => caseCardHTML(c)).join('');
-    }
-
-    // ===== View Case Detail =====
-    function viewCase(id) {
-      const c = cases.find(x => x.id === id);
-      if (!c) return;
-      currentDetailCase = c;
-
-      const waCallLink  = c.personPhone ? whatsAppCallLink(c.personPhone) : null;
-      const waShareLink = whatsAppShareLink(c);
-      const waCallBtn   = waCallLink ? `<a href="${waCallLink}" target="_blank" class="wa-btn" style="width:36px;height:36px">${waSvg}</a>` : '';
-
-      let html = `<div class="detail-card">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
-          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
-            <span class="case-number">#${escHtml(c.caseNumber)}</span>
-            <span class="status-badge" style="background:${STATUS_COLORS[c.status]}">${STATUS_LABELS[c.status]}</span>
-          </div>
-          ${waCallBtn}
-        </div>
-
-        <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
-          <div style="width:40px;height:40px;border-radius:50%;background:#f0fdfa;display:flex;align-items:center;justify-content:center;flex-shrink:0">
-            <span style="color:var(--teal);font-weight:700;font-size:16px">${escHtml(c.personName.charAt(0))}</span>
-          </div>
-          <strong style="font-size:17px">${escHtml(c.personName)}</strong>
-        </div>`;
-
-      if (c.personPhone) html += detailRow('📱','رقم الهاتف', `<code>${escHtml(c.personPhone)}</code>`);
-      if (c.nationalId)  html += detailRow('🆔','الرقم القومي', `<code>${escHtml(c.nationalId)}</code>`);
-      if (c.country)     html += detailRow('🌍','الدولة', escHtml(c.country));
-      if (c.hospitalName)html += detailRow('🏥','المستشفى', escHtml(c.hospitalName));
-      html += detailRow('🩺','نوع الخدمة', escHtml(c.serviceType));
-      if (c.submissionDate) html += detailRow('📅','تاريخ الطلب', escHtml(c.submissionDate));
-      if (c.responseDate)   html += detailRow('📆','تاريخ الرد',  escHtml(c.responseDate));
-
-      if (c.description) {
-        html += `<div class="detail-sep"><div class="detail-label">الوصف</div><p style="font-size:14px;line-height:1.7">${escHtml(c.description)}</p></div>`;
-      }
-      if (c.status === 'responded' && c.response) {
-        html += `<div class="detail-sep"><div class="detail-label">الرد</div><div class="response-box violet">${escHtml(c.response)}</div></div>`;
-      }
-      if (c.status === 'rejected' && c.rejectionReason) {
-        html += `<div class="detail-sep"><div class="detail-label">سبب الرفض</div><div class="response-box red">${escHtml(c.rejectionReason)}</div></div>`;
-      }
-
-      if (c.documents && c.documents.length > 0) {
-        html += `<div class="detail-sep"><div class="detail-label">المستندات (${c.documents.length})</div>`;
-        html += c.documents.map(d => {
-          const isImg = d.type && (d.type.startsWith('image/') || d.type === 'image');
-          const icon  = isImg
-            ? `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#0d9488" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>`
-            : `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--text3)" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>`;
-          const size  = d.size ? `<span style="font-size:10px;color:var(--text3)">${(d.size/1024).toFixed(0)}KB</span>` : '';
-          const date  = d.uploadedAt ? `<span style="font-size:10px;color:var(--text3)">${new Date(d.uploadedAt).toLocaleDateString('ar-EG')}</span>` : '';
-          return `<a href="${escHtml(d.url || '#')}" target="_blank" style="display:flex;align-items:center;gap:8px;padding:8px;background:#f8fafc;border-radius:8px;margin-top:4px;text-decoration:none;color:var(--text)">
-            ${icon}
-            <span style="font-size:13px;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escHtml(d.name)}</span>
-            ${date} ${size}
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--text3)" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-          </a>`;
-        }).join('');
-        html += '</div>';
-      }
-
-      const created = new Date(c.createdAt).toLocaleDateString('ar-EG', { year:'numeric', month:'short', day:'numeric', hour:'2-digit', minute:'2-digit' });
-      html += `<div class="detail-sep" style="font-size:12px;color:var(--text3);border-bottom:none">تاريخ الإنشاء: ${created}</div>
-      </div>`;
-
-      // Actions
-      html += `<div class="actions-row">
-        <button class="btn btn-primary" onclick="editCase('${c.id}')">✏️ تعديل</button>
-        <button class="btn btn-danger" onclick="confirmDelete('${c.id}')">🗑 حذف</button>
-      </div>
-      <div class="share-row">
-        <a href="${waShareLink}" target="_blank" class="btn btn-wa">
-          ${waSvg} مشاركة واتساب
-        </a>
-      </div>`;
-
-      document.getElementById('detailContent').innerHTML = html;
-      switchTab('detail');
-    }
-
-    function detailRow(icon, label, val) {
-      return `<div class="detail-row">
-        <span style="flex-shrink:0">${icon}</span>
-        <span class="lbl">${label}:</span>
-        <span class="val">${val}</span>
-      </div>`;
-    }
-
-    // ===== Delete =====
-    async function confirmDelete(id) {
-      if (!confirm('هل أنت متأكد من حذف هذا الطلب؟')) return;
-      try {
-        await db.ref('cases/' + id).remove();
-        showToast('تم حذف الطلب');
-        switchTab('cases');
-      } catch (err) {
-        showToast('خطأ في الحذف');
-      }
-    }
-
-    // ===== Edit =====
-    function editCase(id) {
-      const c = cases.find(x => x.id === id);
-      if (!c) return;
-      editingCaseId = id;
-      document.getElementById('formTitle').textContent = 'تعديل الطلب';
-      document.getElementById('saveBtn').textContent   = 'تحديث الطلب';
-      document.getElementById('fName').value           = c.personName;
-      document.getElementById('fPhone').value          = c.personPhone  || '';
-      document.getElementById('fNationalId').value     = c.nationalId   || '';
-      document.getElementById('fCountry').value        = c.country      || '';
-      document.getElementById('fHospital').value       = c.hospitalName || '';
-      document.getElementById('fSubmissionDate').value = c.submissionDate || '';
-      document.getElementById('fResponseDate').value   = c.responseDate  || '';
-      document.getElementById('fService').value        = c.serviceType;
-      document.getElementById('fDesc').value           = c.description  || '';
-      document.getElementById('fStatus').value         = c.status;
-      document.getElementById('fResponse').value       = c.response     || '';
-      document.getElementById('fRejection').value      = c.rejectionReason || '';
-      uploadedDocs = c.documents ? [...c.documents] : [];
-      renderDocsList();
-      toggleStatusFields();
-      switchTab('add');
+      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      const recognition = new SpeechRecognition();
+      recognition.lang = 'ar-EG';
+      recognition.interimResults = true; // تفعيل النتائج المؤقتة للبحث الفوري
+      
+      const btn = document.getElementById(inputId === 'globalSearch' ? 'searchVoiceBtn' : 'casesVoiceBtn');
+      btn.classList.add('listening');
+      
+      // البحث الفوري أثناء التحدث (نتائج مؤقتة)
+      recognition.onresult = (event) => {
+        let transcript = '';
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+          transcript += event.results[i][0].transcript;
+        }
+        // وضع النص مباشرة في مربع البحث
+        document.getElementById(inputId).value = transcript;
+        // تفعيل البحث فوراً
+        callback();
+      };
+      
+      recognition.onerror = () => {
+        btn.classList.remove('listening');
+        showToast('حدث خطأ في التعرف الصوتي');
+      };
+      
+      recognition.onend = () => {
+        btn.classList.remove('listening');
+      };
+      
+      recognition.start();
+      showToast('🎤 تحدث الآن...');
     }
 
     // ===== New Case =====
     function openNewCase() {
       editingCaseId = null;
-      document.getElementById('formTitle').textContent = 'طلب جديد';
-      document.getElementById('saveBtn').textContent   = 'حفظ الطلب';
-      document.getElementById('fName').value           = '';
-      document.getElementById('fPhone').value          = '';
-      document.getElementById('fNationalId').value     = '';
-      document.getElementById('fCountry').value        = '';
-      document.getElementById('fHospital').value       = '';
-      document.getElementById('fSubmissionDate').value = new Date().toISOString().split('T')[0];
-      document.getElementById('fResponseDate').value   = '';
-      document.getElementById('fService').value        = '';
-      document.getElementById('fDesc').value           = '';
-      document.getElementById('fStatus').value         = 'under_review';
-      document.getElementById('fResponse').value       = '';
-      document.getElementById('fRejection').value      = '';
       uploadedDocs = [];
-      renderDocsList();
-      toggleStatusFields();
+      document.getElementById('formTitle').textContent = 'طلب جديد';
+      document.getElementById('fName').value = '';
+      document.getElementById('fPhone').value = '';
+      document.getElementById('fNationalId').value = '';
+      document.getElementById('fCountry').value = '';
+      document.getElementById('fHospital').value = '';
+      document.getElementById('fSubmissionDate').value = new Date().toISOString().split('T')[0];
+      document.getElementById('fResponseDate').value = '';
+      document.getElementById('fService').value = '';
+      document.getElementById('fDesc').value = '';
+      document.getElementById('fStatus').value = 'under_review';
+      document.getElementById('fResponse').value = '';
+      document.getElementById('fRejection').value = '';
+      document.getElementById('docsList').innerHTML = '';
+      document.getElementById('docsCount').textContent = '';
+      document.getElementById('responseGroup').classList.add('hidden');
+      document.getElementById('rejectionGroup').classList.add('hidden');
       switchTab('add');
     }
 
-    function cancelForm() { editingCaseId = null; switchTab('cases'); }
+    function cancelForm() {
+      switchTab(currentTab === 'add' ? 'cases' : currentTab);
+    }
 
     function toggleStatusFields() {
-      const s = document.getElementById('fStatus').value;
-      document.getElementById('responseGroup').classList.toggle('hidden', s !== 'responded');
-      document.getElementById('rejectionGroup').classList.toggle('hidden', s !== 'rejected');
+      const status = document.getElementById('fStatus').value;
+      document.getElementById('responseGroup').classList.toggle('hidden', status !== 'responded');
+      document.getElementById('rejectionGroup').classList.toggle('hidden', status !== 'rejected');
     }
-
-    // ===== Country Dropdown =====
-    function showCountryDropdown() {
-      document.getElementById('countryDropdown').classList.remove('hidden');
-      renderCountryOptions('');
-    }
-
-    function filterCountries() {
-      const q = document.getElementById('fCountry').value;
-      renderCountryOptions(q);
-      document.getElementById('countryDropdown').classList.remove('hidden');
-    }
-
-    function renderCountryOptions(q) {
-      const filtered = COUNTRIES.filter(c => arabicMatch(c, q) || c.includes(q));
-      const el = document.getElementById('countryOptions');
-      if (filtered.length === 0) {
-        el.innerHTML = '<div class="country-option" style="color:var(--text3)">لا توجد نتائج</div>';
-        return;
-      }
-      el.innerHTML = filtered.map(c =>
-        `<div class="country-option" onclick="selectCountry('${c}')">${escHtml(c)}</div>`
-      ).join('');
-    }
-
-    function selectCountry(name) {
-      document.getElementById('fCountry').value = name;
-      document.getElementById('countryDropdown').classList.add('hidden');
-    }
-
-    document.addEventListener('click', function(e) {
-      if (!e.target.closest('.country-select-wrap')) {
-        document.getElementById('countryDropdown')?.classList.add('hidden');
-      }
-    });
-
-    // ===== Telegram Bot Config =====
-    const BOT_TOKEN  = '';
-    const CHANNEL_ID = '';
 
     // ===== File Upload =====
-    let uploadingFiles = false;
-
-    async function uploadToTelegram(file) {
-      if (!BOT_TOKEN || !CHANNEL_ID) throw new Error('BOT_TOKEN أو CHANNEL_ID غير مضبوطين');
-      const formData = new FormData();
-      formData.append('chat_id', CHANNEL_ID);
-      formData.append('document', file);
-      formData.append('caption', '📁 ' + file.name);
-      const res  = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendDocument`, { method:'POST', body:formData });
-      const data = await res.json();
-      if (!data.ok) throw new Error(data.description || 'Upload failed');
-      return {
-        telegramFileId:    data.result.document.file_id,
-        telegramMessageId: data.result.message_id,
-        url: `https://api.telegram.org/file/bot${BOT_TOKEN}/${data.result.document.file_path || data.result.document.file_id}`
-      };
-    }
-
-    async function handleFileUpload(files) {
-      if (!files || files.length === 0) return;
+    function handleFileUpload(files) {
       if (uploadedDocs.length + files.length > MAX_DOCS) {
         showToast(`الحد الأقصى ${MAX_DOCS} ملفات`);
         return;
       }
-      uploadingFiles = true;
-      renderDocsList();
-
-      for (let i = 0; i < files.length; i++) {
-        const file = files[i];
-        if (uploadedDocs.length >= MAX_DOCS) break;
-        try {
-          if (BOT_TOKEN && CHANNEL_ID) {
-            const result = await uploadToTelegram(file);
-            uploadedDocs.push({ name:file.name, url:result.url, telegramFileId:result.telegramFileId, telegramMessageId:result.telegramMessageId, type:file.type, size:file.size, uploadedAt:Date.now() });
-            showToast(`✅ تم رفع: ${file.name}`);
-          } else {
-            const base64 = await fileToBase64(file);
-            uploadedDocs.push({ name:file.name, url:base64, type:file.type, size:file.size, isBase64:true, uploadedAt:Date.now() });
-            showToast(`✅ تم حفظ: ${file.name} (محلي)`);
-          }
-        } catch (err) {
-          try {
-            const base64 = await fileToBase64(file);
-            uploadedDocs.push({ name:file.name, url:base64, type:file.type, size:file.size, isBase64:true, uploadedAt:Date.now() });
-            showToast(`تم حفظ: ${file.name} (محلي)`);
-          } catch (e2) { showToast(`فشل رفع: ${file.name}`); }
+      
+      Array.from(files).forEach(file => {
+        if (file.size > 5 * 1024 * 1024) {
+          showToast(`الملف ${file.name} أكبر من 5MB`);
+          return;
         }
-        renderDocsList();
-      }
-      uploadingFiles = false;
-      renderDocsList();
-      document.getElementById('fileInput').value = '';
-    }
-
-    function fileToBase64(file) {
-      return new Promise((resolve, reject) => {
-        const r = new FileReader();
-        r.onload  = (e) => resolve(e.target.result);
-        r.onerror = reject;
-        r.readAsDataURL(file);
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          uploadedDocs.push({
+            name: file.name,
+            type: file.type,
+            data: e.target.result,
+            size: file.size
+          });
+          renderDocs();
+        };
+        reader.readAsDataURL(file);
       });
     }
 
-    function renderDocsList() {
+    function renderDocs() {
       const container = document.getElementById('docsList');
-      const countEl   = document.getElementById('docsCount');
-      if (uploadingFiles) {
-        container.innerHTML = '<div class="doc-item"><div class="spinner" style="width:16px;height:16px;border-color:rgba(13,148,136,0.2);border-top-color:var(--teal)"></div><span style="color:var(--teal);font-size:13px">جاري رفع المستندات...</span></div>';
-        return;
-      }
-      if (countEl) countEl.textContent = uploadedDocs.length > 0 ? `${uploadedDocs.length} / ${MAX_DOCS} ملف` : '';
-      if (uploadedDocs.length === 0) { container.innerHTML = ''; return; }
-      container.innerHTML = uploadedDocs.map((d, i) => {
-        const isImg = d.type && d.type.startsWith('image/');
-        const icon  = isImg
-          ? `<svg viewBox="0 0 24 24" fill="none" stroke="#0d9488" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>`
-          : `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>`;
-        const size = d.size ? ` (${(d.size/1024).toFixed(0)} KB)` : '';
-        return `<div class="doc-item">${icon}<span>${escHtml(d.name)}${size}</span><button class="doc-remove" onclick="removeDoc(${i})"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div>`;
-      }).join('');
+      container.innerHTML = uploadedDocs.map((doc, i) => `
+        <div class="doc-item">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--teal)" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+          <span>${doc.name}</span>
+          <button class="doc-remove" onclick="removeDoc(${i})">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          </button>
+        </div>
+      `).join('');
+      document.getElementById('docsCount').textContent = uploadedDocs.length > 0 ? `${uploadedDocs.length} ملف مرفق` : '';
     }
 
-    function removeDoc(i) { uploadedDocs.splice(i, 1); renderDocsList(); }
+    function removeDoc(index) {
+      uploadedDocs.splice(index, 1);
+      renderDocs();
+    }
 
     // ===== Save Case =====
-    async function saveCase() {
-      const name    = document.getElementById('fName').value.trim();
+    function saveCase() {
+      const name = document.getElementById('fName').value.trim();
+      const phone = document.getElementById('fPhone').value.trim();
+      const nationalId = document.getElementById('fNationalId').value.trim();
+      const country = document.getElementById('fCountry').value.trim();
+      const hospital = document.getElementById('fHospital').value.trim();
+      const submissionDate = document.getElementById('fSubmissionDate').value;
+      const responseDate = document.getElementById('fResponseDate').value;
       const service = document.getElementById('fService').value;
-      if (!name)    { showToast('يرجى إدخال اسم الشخص'); return; }
-      if (!service) { showToast('يرجى اختيار نوع الخدمة'); return; }
+      const desc = document.getElementById('fDesc').value.trim();
+      const status = document.getElementById('fStatus').value;
+      const response = document.getElementById('fResponse').value.trim();
+      const rejection = document.getElementById('fRejection').value.trim();
 
-      const now = Date.now();
-      const data = {
-        personName:      name,
-        personPhone:     document.getElementById('fPhone').value.trim(),
-        nationalId:      document.getElementById('fNationalId').value.trim(),
-        country:         document.getElementById('fCountry').value.trim(),
-        hospitalName:    document.getElementById('fHospital').value.trim(),
-        submissionDate:  document.getElementById('fSubmissionDate').value,
-        responseDate:    document.getElementById('fResponseDate').value,
-        serviceType:     service,
-        description:     document.getElementById('fDesc').value.trim(),
-        status:          document.getElementById('fStatus').value,
-        response:        document.getElementById('fResponse').value.trim(),
-        rejectionReason: document.getElementById('fRejection').value.trim(),
-        documents:       uploadedDocs,
-        updatedAt:       now
+      if (!name) { showToast('الرجاء إدخال الاسم الكامل'); return; }
+      if (!service) { showToast('الرجاء اختيار نوع الخدمة'); return; }
+
+      showLoading(true);
+
+      const caseData = {
+        name, phone, nationalId, country, hospital,
+        submissionDate, responseDate, service, desc, status,
+        updatedAt: new Date().toISOString()
       };
 
-      try {
-        if (editingCaseId) {
-          await db.ref('cases/' + editingCaseId).update(data);
-          showToast('تم تحديث الطلب');
-        } else {
-          // Get sequential number
-          const counterSnap = await db.ref('meta/caseCounter').once('value');
-          const nextNum = (counterSnap.val() || 0) + 1;
-          await db.ref('meta/caseCounter').set(nextNum);
+      if (status === 'responded') caseData.response = response;
+      if (status === 'rejected') caseData.rejection = rejection;
 
-          const newRef = db.ref('cases').push();
-          data.id          = newRef.key;
-          data.caseNumber  = String(nextNum);
-          data.createdAt   = now;
-          await newRef.set(data);
-          showToast('✅ تم إنشاء الطلب رقم ' + nextNum);
-        }
-        editingCaseId = null;
+      if (editingCaseId) {
+        // Update
+        db.ref('cases/' + editingCaseId).update(caseData).then(() => {
+          if (uploadedDocs.length > 0) {
+            const docsRef = db.ref('cases/' + editingCaseId + '/documents');
+            uploadedDocs.forEach(doc => {
+              docsRef.push({ name: doc.name, type: doc.type, data: doc.data, size: doc.size });
+            });
+          }
+          showLoading(false);
+          showToast('تم تحديث الطلب بنجاح ✅');
+          switchTab('cases');
+        }).catch(err => {
+          showLoading(false);
+          showToast('حدث خطأ أثناء الحفظ');
+          console.error(err);
+        });
+      } else {
+        // Create - ترقيم تسلسلي من 1
+        caseData.createdAt = new Date().toISOString();
+        caseData.caseNumber = nextCaseNumber;
+        
+        const newRef = db.ref('cases').push();
+        newRef.set(caseData).then(() => {
+          if (uploadedDocs.length > 0) {
+            const docsRef = db.ref('cases/' + newRef.key + '/documents');
+            uploadedDocs.forEach(doc => {
+              docsRef.push({ name: doc.name, type: doc.type, data: doc.data, size: doc.size });
+            });
+          }
+          showLoading(false);
+          showToast(`تم حفظ الطلب رقم ${nextCaseNumber} بنجاح ✅`);
+          switchTab('cases');
+        }).catch(err => {
+          showLoading(false);
+          showToast('حدث خطأ أثناء الحفظ');
+          console.error(err);
+        });
+      }
+    }
+
+    // ===== Detail =====
+    function openDetail(id) {
+      const c = cases.find(x => x.id === id);
+      if (!c) return;
+      currentDetailCase = c;
+      
+      const statusColor = STATUS_COLORS[c.status] || '#94a3b8';
+      const statusLabel = STATUS_LABELS[c.status] || c.status;
+      const waLink = whatsAppCallLink(c.phone);
+
+      let html = `
+        <div class="detail-card">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
+            <span class="status-badge" style="background:${statusColor};font-size:13px;padding:4px 12px">${statusLabel}</span>
+            <span class="case-number" style="font-size:13px">#${c.caseNumber || '-'}</span>
+          </div>
+          <div class="detail-row"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--teal)" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg><span class="lbl">الاسم:</span><span class="val">${c.name || '-'}</span></div>
+          ${c.phone ? `<div class="detail-row"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--teal)" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg><span class="lbl">الهاتف:</span><span class="val" dir="ltr">${c.phone}</span></div>` : ''}
+          ${c.nationalId ? `<div class="detail-row"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--teal)" stroke-width="2"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg><span class="lbl">الرقم القومي:</span><span class="val" dir="ltr">${c.nationalId}</span></div>` : ''}
+          ${c.country ? `<div class="detail-row"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--teal)" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg><span class="lbl">البلد:</span><span class="val">${c.country}</span></div>` : ''}
+          ${c.hospital ? `<div class="detail-row"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--teal)" stroke-width="2"><path d="M3 21h18"/><path d="M5 21V7l8-4v18"/><path d="M19 21V11l-6-4"/><path d="M9 9h1"/><path d="M9 13h1"/><path d="M9 17h1"/></svg><span class="lbl">المستشفى:</span><span class="val">${c.hospital}</span></div>` : ''}
+          <div class="detail-row"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--teal)" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg><span class="lbl">الخدمة:</span><span class="val">${c.service || '-'}</span></div>
+          <div class="detail-row"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--teal)" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg><span class="lbl">تاريخ الطلب:</span><span class="val">${c.submissionDate || '-'}</span></div>
+          ${c.responseDate ? `<div class="detail-row"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--teal)" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg><span class="lbl">تاريخ الرد:</span><span class="val">${c.responseDate}</span></div>` : ''}
+        </div>
+      `;
+
+      if (c.desc) {
+        html += `<div class="detail-card"><div class="detail-label">الوصف</div><p style="font-size:14px;line-height:1.7">${c.desc}</p></div>`;
+      }
+
+      if (c.status === 'responded' && c.response) {
+        html += `<div class="detail-card"><div class="detail-label">الرد</div><div class="response-box violet">${c.response}</div></div>`;
+      }
+      if (c.status === 'rejected' && c.rejection) {
+        html += `<div class="detail-card"><div class="detail-label">سبب الرفض</div><div class="response-box red">${c.rejection}</div></div>`;
+      }
+
+      const docs = c.documents ? Object.entries(c.documents) : [];
+      if (docs.length > 0) {
+        html += `<div class="detail-card"><div class="detail-label">المستندات (${docs.length})</div>`;
+        docs.forEach(([docId, doc]) => {
+          html += `
+            <div class="doc-item" style="cursor:pointer" onclick="window.open('${doc.data}', '_blank')">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--teal)" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+              <span>${doc.name || 'مستند'}</span>
+            </div>
+          `;
+        });
+        html += `</div>`;
+      }
+
+      html += `
+        <div class="detail-card">
+          <div class="actions-row">
+            <button class="btn btn-primary" onclick="editCase('${c.id}')">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+              تعديل
+            </button>
+            <button class="btn btn-danger" onclick="deleteCase('${c.id}')">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+              حذف
+            </button>
+          </div>
+          <div class="share-row">
+            ${waLink ? `<a href="${waLink}" target="_blank" class="btn btn-wa" style="text-decoration:none">${waSvg} واتساب</a>` : ''}
+            <button class="btn btn-outline" onclick="shareCase('${c.id}')">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+              مشاركة
+            </button>
+          </div>
+        </div>
+      `;
+
+      document.getElementById('detailContent').innerHTML = html;
+      switchTab('detail');
+    }
+
+    // ===== Edit Case =====
+    function editCase(id) {
+      const c = cases.find(x => x.id === id);
+      if (!c) return;
+      
+      editingCaseId = id;
+      uploadedDocs = [];
+      document.getElementById('formTitle').textContent = 'تعديل الطلب';
+      document.getElementById('fName').value = c.name || '';
+      document.getElementById('fPhone').value = c.phone || '';
+      document.getElementById('fNationalId').value = c.nationalId || '';
+      document.getElementById('fCountry').value = c.country || '';
+      document.getElementById('fHospital').value = c.hospital || '';
+      document.getElementById('fSubmissionDate').value = c.submissionDate || '';
+      document.getElementById('fResponseDate').value = c.responseDate || '';
+      document.getElementById('fService').value = c.service || '';
+      document.getElementById('fDesc').value = c.desc || '';
+      document.getElementById('fStatus').value = c.status || 'under_review';
+      document.getElementById('fResponse').value = c.response || '';
+      document.getElementById('fRejection').value = c.rejection || '';
+      document.getElementById('docsList').innerHTML = '';
+      document.getElementById('docsCount').textContent = '';
+      toggleStatusFields();
+      switchTab('add');
+    }
+
+    // ===== Delete Case =====
+    function deleteCase(id) {
+      if (!confirm('هل أنت متأكد من حذف هذا الطلب؟')) return;
+      showLoading(true);
+      db.ref('cases/' + id).remove().then(() => {
+        showLoading(false);
+        showToast('تم حذف الطلب ✅');
         switchTab('cases');
-      } catch (err) {
-        showToast('خطأ في الحفظ: ' + err.message);
+      }).catch(err => {
+        showLoading(false);
+        showToast('حدث خطأ أثناء الحذف');
+        console.error(err);
+      });
+    }
+
+    // ===== Share =====
+    function shareCase(id) {
+      const c = cases.find(x => x.id === id);
+      if (!c) return;
+      
+      const statusLabel = STATUS_LABELS[c.status] || c.status;
+      let text = `📋 *تفاصيل الطلب*\n`;
+      text += `الرقم: #${c.caseNumber || '-'}\n`;
+      text += `الاسم: ${c.name}\n`;
+      if (c.phone) text += `الهاتف: ${c.phone}\n`;
+      if (c.nationalId) text += `الرقم القومي: ${c.nationalId}\n`;
+      if (c.country) text += `البلد: ${c.country}\n`;
+      if (c.hospital) text += `المستشفى: ${c.hospital}\n`;
+      text += `الخدمة: ${c.service}\n`;
+      text += `الحالة: ${statusLabel}\n`;
+      if (c.submissionDate) text += `تاريخ الطلب: ${c.submissionDate}\n`;
+      if (c.responseDate) text += `تاريخ الرد: ${c.responseDate}\n`;
+      if (c.response) text += `الرد: ${c.response}\n`;
+      if (c.rejection) text += `سبب الرفض: ${c.rejection}\n`;
+
+      if (navigator.share) {
+        navigator.share({ title: `طلب ${c.name}`, text });
+      } else {
+        navigator.clipboard.writeText(text).then(() => {
+          showToast('تم نسخ التفاصيل ✅');
+        });
       }
     }
 
     // ===== Print =====
     function printCase() {
+      if (!currentDetailCase) return;
       const c = currentDetailCase;
-      if (!c) return;
-
-      const printEl = document.getElementById('printArea');
-      const today   = new Date().toLocaleDateString('ar-EG', { year:'numeric', month:'long', day:'numeric' });
-
-      printEl.innerHTML = `
+      const statusLabel = STATUS_LABELS[c.status] || c.status;
+      
+      const printArea = document.getElementById('printArea');
+      printArea.style.display = 'block';
+      printArea.innerHTML = `
         <div class="print-header">
-          <h1>El Ashry Pro - مكتب الحاج أحمد الحديدي</h1>
-          <p>عضو مجلس النواب</p>
-          <p>تاريخ الطباعة: ${today}</p>
+          <h1>El Ashry Pro - تقرير طلب</h1>
+          <p>مكتب الحاج أحمد الحديدي - عضو مجلس النواب</p>
         </div>
-
-        <div class="print-row"><span class="lbl">رقم الطلب</span><span class="val">#${escHtml(c.caseNumber)}</span></div>
-        <div class="print-row"><span class="lbl">اسم المتقدم</span><span class="val">${escHtml(c.personName)}</span></div>
-        <div class="print-row"><span class="lbl">رقم الهاتف</span><span class="val">${escHtml(c.personPhone || '—')}</span></div>
-        <div class="print-row"><span class="lbl">الرقم القومي</span><span class="val">${escHtml(c.nationalId || '—')}</span></div>
-        <div class="print-row"><span class="lbl">الدولة</span><span class="val">${escHtml(c.country || '—')}</span></div>
-        <div class="print-row"><span class="lbl">المستشفى</span><span class="val">${escHtml(c.hospitalName || '—')}</span></div>
-        <div class="print-row"><span class="lbl">نوع الخدمة</span><span class="val">${escHtml(c.serviceType)}</span></div>
-        <div class="print-row"><span class="lbl">حالة الطلب</span><span class="val">${STATUS_LABELS[c.status] || c.status}</span></div>
-        <div class="print-row"><span class="lbl">تاريخ تقديم الطلب</span><span class="val">${escHtml(c.submissionDate || '—')}</span></div>
-        <div class="print-row"><span class="lbl">تاريخ الرد</span><span class="val">${escHtml(c.responseDate || '—')}</span></div>
-
-        ${c.description ? `<div class="print-section"><h3>الوصف</h3><p>${escHtml(c.description)}</p></div>` : ''}
-        ${c.status === 'responded' && c.response ? `<div class="print-section"><h3>الرد</h3><p>${escHtml(c.response)}</p></div>` : ''}
-        ${c.status === 'rejected' && c.rejectionReason ? `<div class="print-section"><h3>سبب الرفض</h3><p>${escHtml(c.rejectionReason)}</p></div>` : ''}
-        ${c.documents && c.documents.length > 0 ? `<div class="print-section"><h3>المستندات (${c.documents.length})</h3>${c.documents.map(d => `<div style="padding:4px 0;border-bottom:1px solid #f1f5f9">${escHtml(d.name)}</div>`).join('')}</div>` : ''}
-
-        <div class="print-footer">
-          نظام El Ashry Pro - تاريخ الإنشاء: ${new Date(c.createdAt).toLocaleDateString('ar-EG')}
-        </div>
+        <div class="print-row"><span class="lbl">رقم الطلب</span><span class="val">#${c.caseNumber || '-'}</span></div>
+        <div class="print-row"><span class="lbl">الاسم</span><span class="val">${c.name || '-'}</span></div>
+        <div class="print-row"><span class="lbl">الهاتف</span><span class="val" dir="ltr">${c.phone || '-'}</span></div>
+        <div class="print-row"><span class="lbl">الرقم القومي</span><span class="val" dir="ltr">${c.nationalId || '-'}</span></div>
+        <div class="print-row"><span class="lbl">البلد</span><span class="val">${c.country || '-'}</span></div>
+        <div class="print-row"><span class="lbl">المستشفى</span><span class="val">${c.hospital || '-'}</span></div>
+        <div class="print-row"><span class="lbl">نوع الخدمة</span><span class="val">${c.service || '-'}</span></div>
+        <div class="print-row"><span class="lbl">الحالة</span><span class="val">${statusLabel}</span></div>
+        <div class="print-row"><span class="lbl">تاريخ الطلب</span><span class="val">${c.submissionDate || '-'}</span></div>
+        <div class="print-row"><span class="lbl">تاريخ الرد</span><span class="val">${c.responseDate || '-'}</span></div>
+        ${c.desc ? `<div class="print-section"><h3>الوصف</h3><p>${c.desc}</p></div>` : ''}
+        ${c.response ? `<div class="print-section"><h3>الرد</h3><p>${c.response}</p></div>` : ''}
+        ${c.rejection ? `<div class="print-section"><h3>سبب الرفض</h3><p>${c.rejection}</p></div>` : ''}
+        <div class="print-footer">تم الطباعة بتاريخ ${new Date().toLocaleDateString('ar-EG')} - El Ashry Pro v2.0</div>
       `;
-
-      printEl.style.display = 'block';
-      window.print();
-      printEl.style.display = 'none';
+      
+      setTimeout(() => {
+        window.print();
+        setTimeout(() => { printArea.style.display = 'none'; }, 500);
+      }, 200);
     }
 
-    // ===== PDF Export =====
     function exportPDF() {
-      const c = currentDetailCase;
-      if (!c) return;
-      // Build a printable HTML page and open in new tab
-      const today = new Date().toLocaleDateString('ar-EG');
-      const html = `<!DOCTYPE html>
-<html lang="ar" dir="rtl">
-<head>
-<meta charset="UTF-8">
-<title>طلب #${c.caseNumber}</title>
-<style>
-  @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap');
-  * { margin:0;padding:0;box-sizing:border-box; }
-  body { font-family:'Cairo',sans-serif; background:#fff; color:#1e293b; padding:32px; direction:rtl; }
-  .header { text-align:center; border-bottom:3px solid #0d9488; padding-bottom:20px; margin-bottom:24px; }
-  .header h1 { font-size:22px; color:#0d9488; }
-  .header p  { font-size:13px; color:#64748b; margin-top:4px; }
-  .badge { display:inline-block; padding:4px 14px; border-radius:20px; font-size:13px; font-weight:700; color:#fff; }
-  .section { margin-bottom:20px; }
-  .section h2 { font-size:14px; font-weight:700; color:#0d9488; margin-bottom:10px; padding-bottom:6px; border-bottom:1px solid #e2e8f0; }
-  .row { display:flex; justify-content:space-between; padding:8px 0; border-bottom:1px solid #f1f5f9; font-size:14px; }
-  .row .lbl { color:#64748b; }
-  .row .val { font-weight:700; }
-  .desc-box { background:#f8fafc; padding:12px; border-radius:8px; font-size:14px; line-height:1.7; }
-  .doc-item { padding:6px 0; border-bottom:1px solid #f1f5f9; font-size:13px; color:#1e293b; }
-  .footer { margin-top:40px; text-align:center; font-size:12px; color:#94a3b8; border-top:1px solid #e2e8f0; padding-top:12px; }
-</style>
-</head>
-<body>
-<div class="header">
-  <h1>El Ashry Pro</h1>
-  <p>مكتب الحاج أحمد الحديدي - عضو مجلس النواب</p>
-  <p>تاريخ التصدير: ${today}</p>
-</div>
-
-<div style="text-align:center;margin-bottom:20px">
-  <span style="font-size:20px;font-weight:800">طلب رقم #${escHtml(c.caseNumber)}</span>
-  <br><br>
-  <span class="badge" style="background:${STATUS_COLORS[c.status]}">${STATUS_LABELS[c.status]}</span>
-</div>
-
-<div class="section">
-  <h2>بيانات المتقدم</h2>
-  <div class="row"><span class="lbl">الاسم الكامل</span><span class="val">${escHtml(c.personName)}</span></div>
-  <div class="row"><span class="lbl">رقم الهاتف</span><span class="val">${escHtml(c.personPhone || '—')}</span></div>
-  <div class="row"><span class="lbl">الرقم القومي</span><span class="val">${escHtml(c.nationalId || '—')}</span></div>
-  <div class="row"><span class="lbl">الدولة</span><span class="val">${escHtml(c.country || '—')}</span></div>
-  <div class="row"><span class="lbl">المستشفى</span><span class="val">${escHtml(c.hospitalName || '—')}</span></div>
-</div>
-
-<div class="section">
-  <h2>تفاصيل الطلب</h2>
-  <div class="row"><span class="lbl">نوع الخدمة</span><span class="val">${escHtml(c.serviceType)}</span></div>
-  <div class="row"><span class="lbl">تاريخ تقديم الطلب</span><span class="val">${escHtml(c.submissionDate || '—')}</span></div>
-  <div class="row"><span class="lbl">تاريخ الرد</span><span class="val">${escHtml(c.responseDate || '—')}</span></div>
-  <div class="row"><span class="lbl">تاريخ الإنشاء</span><span class="val">${new Date(c.createdAt).toLocaleDateString('ar-EG')}</span></div>
-</div>
-
-${c.description ? `<div class="section"><h2>الوصف</h2><div class="desc-box">${escHtml(c.description)}</div></div>` : ''}
-${c.status === 'responded' && c.response ? `<div class="section"><h2>الرد</h2><div class="desc-box" style="background:#f5f3ff;color:#5b21b6">${escHtml(c.response)}</div></div>` : ''}
-${c.status === 'rejected' && c.rejectionReason ? `<div class="section"><h2>سبب الرفض</h2><div class="desc-box" style="background:#fef2f2;color:#b91c1c">${escHtml(c.rejectionReason)}</div></div>` : ''}
-
-${c.documents && c.documents.length > 0 ? `<div class="section"><h2>المستندات (${c.documents.length} ملف)</h2>${c.documents.map(d => `<div class="doc-item">${escHtml(d.name)} ${d.size ? '- ' + (d.size/1024).toFixed(0) + ' KB' : ''} ${d.uploadedAt ? '- ' + new Date(d.uploadedAt).toLocaleDateString('ar-EG') : ''}</div>`).join('')}</div>` : ''}
-
-<div class="footer">نظام El Ashry Pro v2.0 - جميع الحقوق محفوظة</div>
-<script>window.onload = () => { window.print(); }<\/script>
-</body></html>`;
-
-      const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
-      const url  = URL.createObjectURL(blob);
-      window.open(url, '_blank');
-      showToast('جاري فتح نافذة الطباعة/PDF');
-    }
-
-    // ===== Voice Search =====
-    let voiceRecognition = null;
-
-    function startVoiceSearch(inputId, callback) {
-      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-      if (!SpeechRecognition) {
-        showToast('متصفحك لا يدعم البحث الصوتي');
-        return;
-      }
-
-      // Stop if already listening
-      if (voiceRecognition) {
-        voiceRecognition.stop();
-        voiceRecognition = null;
-        document.querySelectorAll('.voice-btn').forEach(b => b.classList.remove('listening'));
-        return;
-      }
-
-      const recognition = new SpeechRecognition();
-      recognition.lang = 'ar-EG';
-      recognition.interimResults = false;
-      recognition.maxAlternatives = 1;
-
-      voiceRecognition = recognition;
-
-      const btnId = inputId === 'casesSearch' ? 'casesVoiceBtn' : 'searchVoiceBtn';
-      document.getElementById(btnId)?.classList.add('listening');
-      showToast('🎙️ اتكلم الآن...');
-
-      recognition.onresult = function(event) {
-        const transcript = event.results[0][0].transcript;
-        document.getElementById(inputId).value = transcript;
-        showToast('✅ تم التعرف: ' + transcript);
-        if (callback) callback();
-      };
-
-      recognition.onerror = function(event) {
-        showToast('خطأ في التعرف على الصوت: ' + event.error);
-        document.getElementById(btnId)?.classList.remove('listening');
-        voiceRecognition = null;
-      };
-
-      recognition.onend = function() {
-        document.getElementById(btnId)?.classList.remove('listening');
-        voiceRecognition = null;
-      };
-
-      recognition.start();
-    }
-
-    // ===== Tab Switching =====
-    function switchTab(tab) {
-      currentTab = tab;
-      document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-      const pageMap = { home:'pageHome', cases:'pageCases', add:'pageAdd', detail:'pageDetail', search:'pageSearch', settings:'pageSettings' };
-      const target = document.getElementById(pageMap[tab]);
-      if (target) target.classList.add('active');
-      document.querySelectorAll('.nav-item').forEach(n => { n.classList.toggle('active', n.dataset.tab === tab); });
-      window.scrollTo(0, 0);
+      showToast('جاري تحضير الملف للطباعة...');
+      printCase();
     }
   </script>
 </body>
