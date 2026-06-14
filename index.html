@@ -15,7 +15,7 @@
   <link rel="apple-touch-icon" sizes="180x180" href="icons/icon-192x192.png">
   <link rel="apple-touch-startup-image" href="icons/icon-512x512.png">
   <!-- PWA Manifest -->
-  <link rel="manifest" href="manifest.json">
+  <link rel="manifest" href="./manifest.json">
   <title>El Ashry Pro</title>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
@@ -531,7 +531,49 @@
     }
 
     function switchTab(tab){currentTab=tab;document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));const map={home:'pageHome',cases:'pageCases',add:'pageAdd',detail:'pageDetail',search:'pageSearch',settings:'pageSettings'};const pg=document.getElementById(map[tab]);if(pg)pg.classList.add('active');const nb=document.querySelector(`.nav-item[data-tab="${tab}"]`);if(nb)nb.classList.add('active');window.scrollTo(0,0);if(tab==='cases')renderCases()}
-    function initApp(){showLoading(true);db.ref('cases').on('value',(snap)=>{const data=snap.val()||{};cases=Object.entries(data).map(([id,val])=>({id,...val}));cases.sort((a,b)=>(b.caseNumber||0)-(a.caseNumber||0));updateStats();renderRecentCases();renderCases();renderSearch();showLoading(false)})}
+    function initApp(){
+      showLoading(true);
+      const casesRef=db.ref('cases');
+      casesRef.on('value',(snap)=>{
+        try{
+          const data=snap.val()||{};
+          cases=Object.entries(data).map(([id,val])=>({id,...val}));
+          cases.sort((a,b)=>(b.caseNumber||0)-(a.caseNumber||0));
+          updateStats();renderRecentCases();renderCases();renderSearch();
+          showLoading(false);
+          // إخفاء رسالة خطأ الاتصال لو كانت ظاهرة
+          const errEl=document.getElementById('connectionError');
+          if(errEl)errEl.style.display='none';
+        }catch(e){
+          console.error('Error processing Firebase data:',e);
+          showLoading(false);
+        }
+      });
+      // معالجة خطأ الاتصال بـ Firebase
+      casesRef.on('error',(err)=>{
+        console.error('Firebase connection error:',err);
+        showLoading(false);
+        let errEl=document.getElementById('connectionError');
+        if(!errEl){
+          errEl=document.createElement('div');
+          errEl.id='connectionError';
+          errEl.style.cssText='position:fixed;top:0;left:0;right:0;background:#ef4444;color:#fff;padding:12px 16px;text-align:center;z-index:9999;font-size:14px;font-family:Cairo,sans-serif;';
+          document.body.prepend(errEl);
+        }
+        errEl.textContent='خطأ في الاتصال ❌ جاري إعادة المحاولة...';
+        errEl.style.display='block';
+      });
+      // مراقبة حالة الاتصال
+      db.ref('.info/connected').on('value',(snap)=>{
+        if(snap.val()===true){
+          console.log('Firebase: Connected');
+          const errEl=document.getElementById('connectionError');
+          if(errEl)errEl.style.display='none';
+        }else{
+          console.log('Firebase: Disconnected');
+        }
+      });
+    }
     function showLoading(s){loadingEl.classList.toggle('hidden',!s)}
 
     function updateStats(){const t=cases.length;document.getElementById('statTotal').textContent=t;document.getElementById('statExecuted').textContent=cases.filter(c=>c.status==='executed').length;document.getElementById('statReview').textContent=cases.filter(c=>c.status==='under_review').length;document.getElementById('statProcedure').textContent=cases.filter(c=>c.status==='under_procedure').length;document.getElementById('statResponded').textContent=cases.filter(c=>c.status==='responded').length;document.getElementById('statRejected').textContent=cases.filter(c=>c.status==='rejected').length;document.getElementById('homeTotalLine').textContent=`${t} طلب مسجل`;document.getElementById('settTotal').textContent=t;let td=0;cases.forEach(c=>{if(c.documents)td+=Object.keys(c.documents).length});document.getElementById('settDocs').textContent=td}
@@ -580,14 +622,14 @@
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', async () => {
         try {
-          swRegistration = await navigator.serviceWorker.register('/sw.js', { scope: '/' });
+          swRegistration = await navigator.serviceWorker.register('./sw.js', { scope: './' });
           console.log('[PWA] Service Worker registered:', swRegistration.scope);
 
           // Check for updates
           swRegistration.addEventListener('updatefound', () => {
             newWorker = swRegistration.installing;
             newWorker.addEventListener('statechange', () => {
-              if (newWorker.statechange === 'installed' && navigator.serviceWorker.controller) {
+              if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
                 showUpdateBanner();
               }
             });
