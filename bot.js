@@ -162,7 +162,14 @@ async function getAllCases() {
     const snap = await get(ref(db, "cases"));
     const data = snap.val() || {};
     // ✅ استخدام Object.entries للحصول على مفتاح Firebase كـ id
-    return Object.entries(data).map(([id, val]) => normalizeCaseData({ id, ...val }));
+    // ✅ لا نحمّل documents في قائمة الطلبات (صور base64 كبيرة = بطء)
+    return Object.entries(data)
+      .filter(([id, val]) => val !== null && typeof val === 'object')
+      .map(([id, val]) => {
+        const { documents, ...valWithoutDocs } = val;
+        const docCount = documents ? Object.keys(documents).length : 0;
+        return normalizeCaseData({ id, ...valWithoutDocs, _docCount: docCount });
+      });
   });
 }
 
@@ -196,19 +203,25 @@ function normalizeCaseData(c) {
     updatedAt: c.updatedAt ? new Date(c.updatedAt).getTime() : Date.now(),
     
     // البيانات الشخصية (دعم الصيغة القديمة والجديدة)
-    // ✅ ...c قد يضع personName=undefined لو البيانات القديمة فيها name فقط
-    // لذلك نستخدم ?? بدل || عشان القيمة الفارغة "" تعتبر صحيحة
-    personName:  c.personName  ?? c.name  ?? "بدون اسم",
-    personPhone: c.personPhone ?? c.phone ?? "",
-    nationalId:  c.nationalId  ?? "",
+    // ✅ استخدام || للتحقق من القيمة الفعلية (ليس فقط null/undefined)
+    personName:  (c.personName && c.personName.trim()) || (c.name && c.name.trim()) || "بدون اسم",
+    personPhone: (c.personPhone && c.personPhone.trim()) || (c.phone && c.phone.trim()) || "",
+    nationalId:  c.nationalId  || "",
     
     // بيانات الطلب
-    serviceType: c.serviceType ?? c.service ?? "غير محدد",
-    description: c.description ?? c.desc    ?? "",
+    serviceType: (c.serviceType && c.serviceType.trim()) || (c.service && c.service.trim()) || "غير محدد",
+    description: (c.description && c.description.trim()) || (c.desc && c.desc.trim()) || "",
     
     // البيانات الإضافية (دعم الحقول القديمة)
-    status:          c.status          ?? "under_review",
-    documents:       c.documents       ?? [],
+    status:          c.status          || "under_review",
+    // ✅ تحويل documents من object (Firebase) إلى array
+    documents: (() => {
+      const docs = c.documents;
+      if (!docs) return [];
+      if (Array.isArray(docs)) return docs;
+      // object من Firebase → تحويل لـ array
+      return Object.values(docs);
+    })(),
     response:        c.response        ?? "",
     rejectionReason: c.rejectionReason ?? "",
     country:         c.country         ?? "",
