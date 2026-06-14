@@ -33,7 +33,12 @@ jobs:
     pip show aiohttp
       - name: Install dependencies
         run: pip install -r requirements.txt
-
+- name: Debug requirements
+  run: |
+    pwd
+    ls -la
+    echo "===== requirements.txt ====="
+    cat requirements.txt
       - name: Kill old bot connections
         env:
           BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
