@@ -33,7 +33,7 @@ jobs:
           BOT_TOKEN:    ${{ secrets.BOT_TOKEN }}
           CHANNEL_ID:   ${{ secrets.CHANNEL_ID }}
           BOT_PASSWORD: ${{ secrets.BOT_PASSWORD }}
-        run: node elashry_bot.js
+        run: node bot.js
 
       - name: ⚠️ Bot Stopped
         if: failure()
