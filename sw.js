@@ -1,22 +1,26 @@
 // ============================================================
-//  El Ashry Pro - Service Worker v3.0 - PWA احترافي
+//  El Ashry Pro - Service Worker v4.0 - PWA احترافي
+//  إصلاح المسارات لتعمل على GitHub Pages
 // ============================================================
 
-const APP_VERSION   = 'v3.0';
+const APP_VERSION   = 'v4.0';
 const CACHE_NAME    = `el-ashry-pro-${APP_VERSION}`;
 const STATIC_CACHE  = `el-ashry-static-${APP_VERSION}`;
 const DYNAMIC_CACHE = `el-ashry-dynamic-${APP_VERSION}`;
 
+// تحديد المسار الأساسي تلقائياً (يعمل على الجذر وعلى المسارات الفرعية مثل GitHub Pages)
+const BASE_PATH = self.location.pathname.replace(/\/sw\.js$/, '');
+
 const STATIC_ASSETS = [
-  '/',
-  '/index.html',
-  '/manifest.json',
-  '/sw.js'
+  `${BASE_PATH}/`,
+  `${BASE_PATH}/index.html`,
+  `${BASE_PATH}/manifest.json`,
+  `${BASE_PATH}/sw.js`
 ];
 
 // ===== Install Event =====
 self.addEventListener('install', (event) => {
-  console.log(`[SW] Installing ${APP_VERSION}...`);
+  console.log(`[SW] Installing ${APP_VERSION}... BASE_PATH=${BASE_PATH}`);
   event.waitUntil(
     caches.open(STATIC_CACHE).then((cache) => {
       return Promise.allSettled(
@@ -90,14 +94,14 @@ self.addEventListener('push', (event) => {
   const data = event.data ? event.data.json() : {};
   const options = {
     body:    data.body    || 'لديك إشعار جديد من El Ashry Pro',
-    icon:    '/icons/icon-192x192.png',
-    badge:   '/icons/icon-72x72.png',
+    icon:    `${BASE_PATH}/icons/icon-192x192.png`,
+    badge:   `${BASE_PATH}/icons/icon-72x72.png`,
     dir:     'rtl',
     lang:    'ar',
     vibrate: [100, 50, 100],
     tag:     'el-ashry-notification',
     renotify: true,
-    data:    { url: data.url || '/' },
+    data:    { url: data.url || `${BASE_PATH}/` },
     actions: [
       { action: 'open',  title: '📋 فتح التطبيق' },
       { action: 'close', title: 'إغلاق' }
@@ -116,7 +120,7 @@ self.addEventListener('notificationclick', (event) => {
         for (const client of windowClients) {
           if ('focus' in client) return client.focus();
         }
-        if (clients.openWindow) return clients.openWindow('/');
+        if (clients.openWindow) return clients.openWindow(`${BASE_PATH}/`);
       })
     );
   }
