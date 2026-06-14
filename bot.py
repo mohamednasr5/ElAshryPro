@@ -1,419 +1,421 @@
-// =====================================================
-//  El Ashry Pro - Telegram Bot (Node.js)
-//  يراقب Firebase ويرسل إشعارات تلغرام
-// =====================================================
+"""
+El Ashry Pro - Telegram Bot (Python)
+يراقب Firebase Realtime Database ويرسل إشعارات تلغرام عند إضافة/تحديث الطلبات
+"""
 
-const https = require("https");
-const http = require("http");
+import os
+import json
+import asyncio
+import logging
+import time
+from datetime import datetime
 
-// ─── إعداد المتغيرات البيئية ──────────────────────────────────
-const BOT_TOKEN = process.env.BOT_TOKEN || "";
-const CHANNEL_ID = process.env.CHANNEL_ID || "";
-const FIREBASE_URL = process.env.FIREBASE_URL || "https://el-ashry-default-rtdb.firebaseio.com";
-const FIREBASE_PATH = process.env.FIREBASE_PATH || "cases";
-const BOT_PASSWORD = process.env.BOT_PASSWORD || "521988";
-const POLL_INTERVAL = parseInt(process.env.POLL_INTERVAL || "30000"); // 30 ثانية
+import aiohttp
+import requests
+from dotenv import load_dotenv
+import firebase_admin
+from firebase_admin import credentials, db as firebase_db
 
-// ─── ثوابت ───────────────────────────────────────────────────
-const STATUS_LABELS = {
-  executed: "✅ تم التنفيذ",
-  under_review: "🔍 تحت المراجعة",
-  under_procedure: "⚙️ تحت الإجراء",
-  responded: "💬 تم الرد",
-  rejected: "❌ طلب مرفوض",
-};
+load_dotenv()
 
-const TELEGRAM_API = `https://api.telegram.org/bot${BOT_TOKEN}`;
+# ─── إعداد Logging ───────────────────────────────────────────
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S",
+)
+logger = logging.getLogger(__name__)
 
-// ─── Logging ──────────────────────────────────────────────────
-function log(level, msg) {
-  const now = new Date().toISOString().replace("T", " ").substring(0, 19);
-  console.log(`${now} [${level}] ${msg}`);
+# ─── إعداد المتغيرات البيئية ──────────────────────────────────
+BOT_TOKEN = os.getenv("BOT_TOKEN", "")
+CHANNEL_ID = os.getenv("CHANNEL_ID", "")
+FIREBASE_URL = os.getenv("FIREBASE_URL", "https://el-ashry-default-rtdb.firebaseio.com")
+FIREBASE_PATH = os.getenv("FIREBASE_PATH", "cases")
+BOT_PASSWORD = os.getenv("BOT_PASSWORD", "521988")
+
+# إعداد بيانات Firebase من متغير بيئي JSON
+FIREBASE_CREDENTIALS_JSON = os.getenv("FIREBASE_CREDENTIALS_JSON", "")
+
+# ─── ثوابت ───────────────────────────────────────────────────
+STATUS_LABELS = {
+    "executed": "✅ تم التنفيذ",
+    "under_review": "🔍 تحت المراجعة",
+    "under_procedure": "⚙️ تحت الإجراء",
+    "responded": "💬 تم الرد",
+    "rejected": "❌ طلب مرفوض",
 }
 
-function info(msg) { log("INFO", msg); }
-function warn(msg) { log("WARN", msg); }
-function error(msg) { log("ERROR", msg); }
+TELEGRAM_API = f"https://api.telegram.org/bot{BOT_TOKEN}"
 
-// ─── طلبات HTTP مساعدة ───────────────────────────────────────
-function httpGet(url) {
-  return new Promise((resolve, reject) => {
-    const lib = url.startsWith("https") ? https : http;
-    lib.get(url, (res) => {
-      let data = "";
-      res.on("data", (chunk) => (data += chunk));
-      res.on("end", () => {
-        try {
-          resolve(JSON.parse(data));
-        } catch (e) {
-          resolve(data);
-        }
-      });
-    }).on("error", reject);
-  });
-}
+# ─── تهيئة Firebase ──────────────────────────────────────────
+def init_firebase():
+    if firebase_admin._apps:
+        return True
+    try:
+        if FIREBASE_CREDENTIALS_JSON:
+            cred_dict = json.loads(FIREBASE_CREDENTIALS_JSON)
+            cred = credentials.Certificate(cred_dict)
+        elif os.path.exists("serviceAccountKey.json"):
+            cred = credentials.Certificate("serviceAccountKey.json")
+        else:
+            logger.warning("لا توجد بيانات اعتماد Firebase - سيعمل البوت بدون مراقبة Firebase")
+            return False
 
-function httpPost(url, body) {
-  return new Promise((resolve, reject) => {
-    const payload = JSON.stringify(body);
-    const parsed = new URL(url);
-    const options = {
-      hostname: parsed.hostname,
-      path: parsed.pathname + parsed.search,
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Content-Length": Buffer.byteLength(payload),
-      },
-    };
+        firebase_admin.initialize_app(cred, {"databaseURL": FIREBASE_URL})
+        logger.info("✅ تم الاتصال بـ Firebase بنجاح")
+        return True
+    except Exception as e:
+        logger.error(f"❌ خطأ في تهيئة Firebase: {e}")
+        return False
 
-    const req = https.request(options, (res) => {
-      let data = "";
-      res.on("data", (chunk) => (data += chunk));
-      res.on("end", () => {
-        try {
-          resolve(JSON.parse(data));
-        } catch (e) {
-          resolve(data);
-        }
-      });
-    });
 
-    req.on("error", reject);
-    req.write(payload);
-    req.end();
-  });
-}
+# ─── إرسال رسالة تلغرام ──────────────────────────────────────
+async def send_telegram_message(text: str, chat_id: str = None, parse_mode: str = "HTML") -> bool:
+    target = chat_id or CHANNEL_ID
+    if not target:
+        logger.warning("لم يتم تحديد CHANNEL_ID")
+        return False
 
-// ─── إرسال رسالة تلغرام ──────────────────────────────────────
-async function sendMessage(text, chatId = null, parseMode = "HTML") {
-  const target = chatId || CHANNEL_ID;
-  if (!target) {
-    warn("لم يتم تحديد CHANNEL_ID");
-    return false;
-  }
-
-  try {
-    const result = await httpPost(`${TELEGRAM_API}/sendMessage`, {
-      chat_id: target,
-      text: text,
-      parse_mode: parseMode,
-    });
-
-    if (result && result.ok) {
-      info(`✅ رسالة أُرسلت إلى ${target}`);
-      return true;
-    } else {
-      error(`❌ خطأ تلغرام: ${result && result.description ? result.description : JSON.stringify(result)}`);
-      return false;
-    }
-  } catch (e) {
-    error(`❌ خطأ في إرسال الرسالة: ${e.message}`);
-    return false;
-  }
-}
-
-// ─── تنسيق رسالة الطلب ───────────────────────────────────────
-function formatCaseMessage(caseData, caseId, eventType = "new") {
-  const status = caseData.status || "under_review";
-  const statusLabel = STATUS_LABELS[status] || status;
-  const caseNum = caseData.caseNumber || "?";
-  const name = caseData.name || "غير معروف";
-  const phone = caseData.phone || "";
-  const nationalId = caseData.nationalId || "";
-  const country = caseData.country || "";
-  const hospital = caseData.hospital || "";
-  const service = caseData.service || "";
-  const desc = caseData.desc || "";
-  const submissionDate = caseData.submissionDate || "";
-  const responseDate = caseData.responseDate || "";
-  const response = caseData.response || "";
-  const rejection = caseData.rejection || "";
-
-  let header;
-  if (eventType === "new") {
-    header = `🆕 <b>طلب جديد #${caseNum}</b>`;
-  } else if (eventType === "update") {
-    header = `🔄 <b>تحديث طلب #${caseNum}</b>`;
-  } else {
-    header = `📋 <b>طلب #${caseNum}</b>`;
-  }
-
-  const lines = [
-    header,
-    "━━━━━━━━━━━━━━━━━━━━",
-    `👤 <b>الاسم:</b> ${name}`,
-  ];
-
-  if (phone) lines.push(`📱 <b>الهاتف:</b> <code>${phone}</code>`);
-  if (nationalId) lines.push(`🆔 <b>الرقم القومي:</b> <code>${nationalId}</code>`);
-  if (country) lines.push(`🏠 <b>البلد:</b> ${country}`);
-  if (hospital) lines.push(`🏥 <b>المستشفى:</b> ${hospital}`);
-  if (service) lines.push(`📝 <b>الخدمة:</b> ${service}`);
-
-  lines.push(`📊 <b>الحالة:</b> ${statusLabel}`);
-
-  if (submissionDate) lines.push(`📅 <b>تاريخ الطلب:</b> ${submissionDate}`);
-  if (responseDate) lines.push(`📆 <b>تاريخ الرد:</b> ${responseDate}`);
-  if (desc) {
-    const shortDesc = desc.length > 200 ? desc.substring(0, 200) + "..." : desc;
-    lines.push(`📄 <b>الوصف:</b> ${shortDesc}`);
-  }
-  if (status === "responded" && response) {
-    const shortResp = response.length > 200 ? response.substring(0, 200) + "..." : response;
-    lines.push(`✅ <b>الرد:</b> ${shortResp}`);
-  }
-  if (status === "rejected" && rejection) {
-    lines.push(`❌ <b>سبب الرفض:</b> ${rejection}`);
-  }
-
-  lines.push("━━━━━━━━━━━━━━━━━━━━");
-  lines.push("🏢 <i>مكتب الحاج أحمد الحديدي</i>");
-
-  const now = new Date().toLocaleString("ar-EG");
-  lines.push(`🕐 <i>${now}</i>`);
-
-  return lines.join("\n");
-}
-
-// ─── مراقبة Firebase ─────────────────────────────────────────
-const knownCases = {};
-let monitorInitialized = false;
-
-async function loadExistingCases() {
-  try {
-    const url = `${FIREBASE_URL}/${FIREBASE_PATH}.json`;
-    const data = await httpGet(url);
-    if (data && typeof data === "object") {
-      Object.assign(knownCases, data);
-      info(`📦 تم تحميل ${Object.keys(data).length} طلب موجود`);
-    } else {
-      info("📦 لا توجد طلبات موجودة");
-    }
-    monitorInitialized = true;
-  } catch (e) {
-    error(`❌ خطأ في تحميل الطلبات: ${e.message}`);
-    monitorInitialized = true;
-  }
-}
-
-async function checkForChanges() {
-  try {
-    const url = `${FIREBASE_URL}/${FIREBASE_PATH}.json`;
-    const currentData = await httpGet(url);
-
-    if (!currentData || typeof currentData !== "object") {
-      return;
+    url = f"{TELEGRAM_API}/sendMessage"
+    payload = {
+        "chat_id": target,
+        "text": text,
+        "parse_mode": parse_mode,
     }
 
-    const newCases = [];
-    const updatedCases = [];
+    try:
+        async with aiohttp.ClientSession() as session:
+            async with session.post(url, json=payload, timeout=aiohttp.ClientTimeout(total=10)) as resp:
+                data = await resp.json()
+                if data.get("ok"):
+                    logger.info(f"✅ تم إرسال الرسالة إلى {target}")
+                    return True
+                else:
+                    logger.error(f"❌ خطأ تلغرام: {data.get('description', 'خطأ غير معروف')}")
+                    return False
+    except Exception as e:
+        logger.error(f"❌ خطأ في الإرسال: {e}")
+        return False
 
-    for (const [caseId, caseData] of Object.entries(currentData)) {
-      if (!knownCases[caseId]) {
-        // طلب جديد
-        newCases.push([caseId, caseData]);
-      } else {
-        // تحقق من التحديث
-        const oldUpdated = knownCases[caseId].updatedAt || "";
-        const newUpdated = caseData.updatedAt || "";
-        if (newUpdated && newUpdated !== oldUpdated) {
-          updatedCases.push([caseId, caseData]);
-        }
-      }
-    }
 
-    // تحديث الحالة المعروفة
-    Object.keys(knownCases).forEach((k) => delete knownCases[k]);
-    Object.assign(knownCases, currentData);
+def send_telegram_message_sync(text: str, chat_id: str = None, parse_mode: str = "HTML") -> bool:
+    target = chat_id or CHANNEL_ID
+    if not target:
+        return False
 
-    // إرسال الإشعارات
-    for (const [caseId, caseData] of newCases) {
-      const msg = formatCaseMessage(caseData, caseId, "new");
-      await sendMessage(msg);
-      await new Promise((r) => setTimeout(r, 500));
-    }
+    url = f"{TELEGRAM_API}/sendMessage"
+    payload = {"chat_id": target, "text": text, "parse_mode": parse_mode}
 
-    for (const [caseId, caseData] of updatedCases) {
-      const msg = formatCaseMessage(caseData, caseId, "update");
-      await sendMessage(msg);
-      await new Promise((r) => setTimeout(r, 500));
-    }
+    try:
+        resp = requests.post(url, json=payload, timeout=10)
+        data = resp.json()
+        if data.get("ok"):
+            logger.info(f"✅ رسالة أُرسلت إلى {target}")
+            return True
+        else:
+            logger.error(f"❌ خطأ تلغرام: {data.get('description')}")
+            return False
+    except Exception as e:
+        logger.error(f"❌ خطأ في الإرسال: {e}")
+        return False
 
-  } catch (e) {
-    error(`❌ خطأ في قراءة Firebase: ${e.message}`);
-  }
-}
 
-// ─── بوت تلغرام (Polling) ─────────────────────────────────────
-let pollingOffset = 0;
+# ─── تنسيق رسالة الطلب ───────────────────────────────────────
+def format_case_message(case_data: dict, case_id: str, event_type: str = "new") -> str:
+    status = case_data.get("status", "under_review")
+    status_label = STATUS_LABELS.get(status, status)
+    case_num = case_data.get("caseNumber", "?")
+    name = case_data.get("name", "غير معروف")
+    phone = case_data.get("phone", "")
+    national_id = case_data.get("nationalId", "")
+    country = case_data.get("country", "")
+    hospital = case_data.get("hospital", "")
+    service = case_data.get("service", "")
+    desc = case_data.get("desc", "")
+    submission_date = case_data.get("submissionDate", "")
+    response_date = case_data.get("responseDate", "")
+    response = case_data.get("response", "")
+    rejection = case_data.get("rejection", "")
 
-async function getUpdates() {
-  try {
-    const url = `${TELEGRAM_API}/getUpdates?offset=${pollingOffset}&timeout=30`;
-    const data = await httpGet(url);
-    if (data && data.ok) {
-      return data.result || [];
-    }
-    return [];
-  } catch (e) {
-    error(`❌ خطأ في getUpdates: ${e.message}`);
-    return [];
-  }
-}
+    if event_type == "new":
+        header = f"🆕 <b>طلب جديد #{case_num}</b>"
+    elif event_type == "update":
+        header = f"🔄 <b>تحديث طلب #{case_num}</b>"
+    else:
+        header = f"📋 <b>طلب #{case_num}</b>"
 
-async function getStats() {
-  try {
-    const url = `${FIREBASE_URL}/${FIREBASE_PATH}.json`;
-    const data = await httpGet(url);
-    if (!data || typeof data !== "object") return null;
+    lines = [
+        header,
+        "━━━━━━━━━━━━━━━━━━━━",
+        f"👤 <b>الاسم:</b> {name}",
+    ]
 
-    const total = Object.keys(data).length;
-    const stats = {};
-    for (const caseData of Object.values(data)) {
-      const s = caseData.status || "unknown";
-      stats[s] = (stats[s] || 0) + 1;
-    }
+    if phone:
+        lines.append(f"📱 <b>الهاتف:</b> <code>{phone}</code>")
+    if national_id:
+        lines.append(f"🆔 <b>الرقم القومي:</b> <code>{national_id}</code>")
+    if country:
+        lines.append(f"🏠 <b>البلد:</b> {country}")
+    if hospital:
+        lines.append(f"🏥 <b>المستشفى:</b> {hospital}")
+    if service:
+        lines.append(f"📝 <b>الخدمة:</b> {service}")
 
-    return { total, stats };
-  } catch (e) {
-    return null;
-  }
-}
+    lines.append(f"📊 <b>الحالة:</b> {status_label}")
 
-async function handleUpdate(update) {
-  const msg = update.message || {};
-  if (!msg.text) return;
+    if submission_date:
+        lines.append(f"📅 <b>تاريخ الطلب:</b> {submission_date}")
+    if response_date:
+        lines.append(f"📆 <b>تاريخ الرد:</b> {response_date}")
+    if desc:
+        short_desc = desc[:200] + "..." if len(desc) > 200 else desc
+        lines.append(f"📄 <b>الوصف:</b> {short_desc}")
+    if status == "responded" and response:
+        short_resp = response[:200] + "..." if len(response) > 200 else response
+        lines.append(f"✅ <b>الرد:</b> {short_resp}")
+    if status == "rejected" and rejection:
+        lines.append(f"❌ <b>سبب الرفض:</b> {rejection}")
 
-  const chatId = String(msg.chat?.id || "");
-  const text = msg.text.trim();
-  const user = msg.from || {};
-  const username = user.username || user.first_name || "مستخدم";
+    lines.append("━━━━━━━━━━━━━━━━━━━━")
+    lines.append("🏢 <i>مكتب الحاج أحمد الحديدي</i>")
 
-  info(`📩 رسالة من ${username}: ${text}`);
+    now = datetime.now().strftime("%Y-%m-%d %H:%M")
+    lines.append(f"🕐 <i>{now}</i>")
 
-  if (text === "/start") {
-    const reply =
-      "👋 <b>مرحباً بك في بوت El Ashry Pro</b>\n\n" +
-      "📋 هذا البوت يرسل إشعارات تلقائية عند:\n" +
-      "• إضافة طلب جديد\n" +
-      "• تحديث حالة طلب موجود\n\n" +
-      "🔧 الأوامر المتاحة:\n" +
-      "/start - بدء البوت\n" +
-      "/stats - إحصائيات الطلبات\n" +
-      "/help - المساعدة";
-    await sendMessage(reply, chatId);
+    return "\n".join(lines)
 
-  } else if (text === "/stats") {
-    const statsData = await getStats();
-    if (!statsData) {
-      await sendMessage("❌ تعذر جلب الإحصائيات", chatId);
-      return;
-    }
 
-    const lines = [
-      "📊 <b>إحصائيات الطلبات</b>",
-      "━━━━━━━━━━━━━━━━━━━━",
-      `📦 <b>إجمالي الطلبات:</b> ${statsData.total}`,
-    ];
+# ─── مراقبة Firebase ─────────────────────────────────────────
+class FirebaseMonitor:
+    def __init__(self):
+        self.known_cases: dict = {}
+        self.initialized = False
 
-    for (const [status, label] of Object.entries(STATUS_LABELS)) {
-      const count = statsData.stats[status] || 0;
-      if (count) lines.push(`${label}: ${count}`);
-    }
+    def load_existing_cases(self):
+        """تحميل الطلبات الموجودة مسبقًا لتجنب إرسال إشعارات عنها"""
+        try:
+            ref = firebase_db.reference(FIREBASE_PATH)
+            data = ref.get()
+            if data:
+                self.known_cases = data
+                logger.info(f"📦 تم تحميل {len(data)} طلب موجود")
+            else:
+                self.known_cases = {}
+                logger.info("📦 لا توجد طلبات موجودة")
+            self.initialized = True
+        except Exception as e:
+            logger.error(f"❌ خطأ في تحميل الطلبات: {e}")
+            self.known_cases = {}
+            self.initialized = True
 
-    lines.push("━━━━━━━━━━━━━━━━━━━━");
-    lines.push(`🕐 ${new Date().toLocaleString("ar-EG")}`);
-    await sendMessage(lines.join("\n"), chatId);
+    def check_for_changes(self):
+        """التحقق من التغييرات في Firebase"""
+        try:
+            ref = firebase_db.reference(FIREBASE_PATH)
+            current_data = ref.get() or {}
 
-  } else if (text === "/help") {
-    const reply =
-      "ℹ️ <b>مساعدة - El Ashry Pro Bot</b>\n\n" +
-      "/start - بدء البوت\n" +
-      "/stats - إحصائيات الطلبات الحالية\n" +
-      "/help - عرض هذه المساعدة\n\n" +
-      "📲 يرسل البوت إشعارًا تلقائيًا عند كل إضافة أو تحديث.";
-    await sendMessage(reply, chatId);
+            new_cases = []
+            updated_cases = []
 
-  } else {
-    await sendMessage("❓ أمر غير معروف. اكتب /help للمساعدة.", chatId);
-  }
-}
+            for case_id, case_data in current_data.items():
+                if case_id not in self.known_cases:
+                    # طلب جديد
+                    new_cases.append((case_id, case_data))
+                else:
+                    # تحقق من التحديث
+                    old_updated = self.known_cases[case_id].get("updatedAt", "")
+                    new_updated = case_data.get("updatedAt", "")
+                    if new_updated and new_updated != old_updated:
+                        updated_cases.append((case_id, case_data))
 
-async function runPolling() {
-  info("🤖 بدء تشغيل polling...");
-  while (true) {
-    try {
-      const updates = await getUpdates();
-      for (const update of updates) {
-        pollingOffset = update.update_id + 1;
-        await handleUpdate(update);
-      }
-    } catch (e) {
-      error(`❌ خطأ في polling: ${e.message}`);
-      await new Promise((r) => setTimeout(r, 5000));
-    }
-  }
-}
+            self.known_cases = current_data
+            return new_cases, updated_cases
 
-// ─── نقطة الدخول الرئيسية ─────────────────────────────────────
-async function main() {
-  info("=".repeat(50));
-  info("🚀 El Ashry Pro - Telegram Bot (Node.js) بدء التشغيل");
-  info("=".repeat(50));
+        except Exception as e:
+            logger.error(f"❌ خطأ في قراءة Firebase: {e}")
+            return [], []
 
-  if (!BOT_TOKEN) {
-    error("❌ BOT_TOKEN غير محدد في المتغيرات البيئية!");
-    process.exit(1);
-  }
+    def run_monitoring_loop(self, interval: int = 30):
+        """حلقة المراقبة الرئيسية"""
+        logger.info(f"👀 بدء مراقبة Firebase (كل {interval} ثانية)...")
+        self.load_existing_cases()
 
-  if (!CHANNEL_ID) {
-    warn("⚠️ CHANNEL_ID غير محدد - لن يتم إرسال الإشعارات للقناة");
-  }
+        while True:
+            try:
+                new_cases, updated_cases = self.check_for_changes()
 
-  // إرسال رسالة تشغيل
-  const startMsg =
-    "🚀 <b>El Ashry Pro Bot - تم التشغيل</b>\n" +
-    `🕐 ${new Date().toLocaleString("ar-EG")}\n` +
-    `🔗 Firebase URL: ${FIREBASE_URL ? "✅ محدد" : "❌ غير محدد"}\n` +
-    "👀 المراقبة نشطة...";
+                for case_id, case_data in new_cases:
+                    msg = format_case_message(case_data, case_id, "new")
+                    send_telegram_message_sync(msg)
+                    time.sleep(0.5)  # تجنب الإرسال السريع جداً
 
-  await sendMessage(startMsg);
+                for case_id, case_data in updated_cases:
+                    msg = format_case_message(case_data, case_id, "update")
+                    send_telegram_message_sync(msg)
+                    time.sleep(0.5)
 
-  // تحميل الطلبات الموجودة
-  await loadExistingCases();
+                time.sleep(interval)
 
-  // بدء مراقبة Firebase
-  const runMonitoring = async () => {
-    while (true) {
-      try {
-        await checkForChanges();
-      } catch (e) {
-        error(`❌ خطأ في المراقبة: ${e.message}`);
-      }
-      await new Promise((r) => setTimeout(r, POLL_INTERVAL));
-    }
-  };
+            except KeyboardInterrupt:
+                logger.info("🛑 تم إيقاف المراقبة")
+                break
+            except Exception as e:
+                logger.error(f"❌ خطأ في حلقة المراقبة: {e}")
+                time.sleep(interval)
 
-  // تشغيل المراقبة والـ polling معاً
-  await Promise.all([runMonitoring(), runPolling()]);
-}
 
-// معالجة الأخطاء غير المتوقعة
-process.on("uncaughtException", (e) => {
-  error(`💥 خطأ غير متوقع: ${e.message}`);
-});
+# ─── بوت تلغرام ──────────────────────────────────────────────
+class TelegramBot:
+    def __init__(self):
+        self.offset = 0
+        self.password = BOT_PASSWORD
 
-process.on("unhandledRejection", (reason) => {
-  error(`💥 Promise مرفوض: ${reason}`);
-});
+    def get_updates(self) -> list:
+        try:
+            resp = requests.get(
+                f"{TELEGRAM_API}/getUpdates",
+                params={"offset": self.offset, "timeout": 30},
+                timeout=35,
+            )
+            data = resp.json()
+            if data.get("ok"):
+                return data.get("result", [])
+            return []
+        except Exception as e:
+            logger.error(f"❌ خطأ في getUpdates: {e}")
+            return []
 
-process.on("SIGINT", () => {
-  info("🛑 تم إيقاف البوت");
-  process.exit(0);
-});
+    def handle_update(self, update: dict):
+        msg = update.get("message", {})
+        if not msg:
+            return
 
-main().catch((e) => {
-  error(`💥 خطأ في التشغيل: ${e.message}`);
-  process.exit(1);
-});
+        chat_id = str(msg.get("chat", {}).get("id", ""))
+        text = msg.get("text", "").strip()
+        user = msg.get("from", {})
+        username = user.get("username", user.get("first_name", "مستخدم"))
+
+        logger.info(f"📩 رسالة من {username}: {text}")
+
+        if text == "/start":
+            reply = (
+                "👋 <b>مرحباً بك في بوت El Ashry Pro</b>\n\n"
+                "📋 هذا البوت يرسل إشعارات تلقائية عند:\n"
+                "• إضافة طلب جديد\n"
+                "• تحديث حالة طلب موجود\n\n"
+                "🔧 الأوامر المتاحة:\n"
+                "/start - بدء البوت\n"
+                "/stats - إحصائيات الطلبات\n"
+                "/help - المساعدة"
+            )
+            send_telegram_message_sync(reply, chat_id)
+
+        elif text == "/stats":
+            self.send_stats(chat_id)
+
+        elif text == "/help":
+            reply = (
+                "ℹ️ <b>مساعدة - El Ashry Pro Bot</b>\n\n"
+                "/start - بدء البوت\n"
+                "/stats - إحصائيات الطلبات الحالية\n"
+                "/help - عرض هذه المساعدة\n\n"
+                "📲 يرسل البوت إشعارًا تلقائيًا عند كل إضافة أو تحديث."
+            )
+            send_telegram_message_sync(reply, chat_id)
+
+        else:
+            reply = "❓ أمر غير معروف. اكتب /help للمساعدة."
+            send_telegram_message_sync(reply, chat_id)
+
+    def send_stats(self, chat_id: str):
+        try:
+            if not firebase_admin._apps:
+                send_telegram_message_sync("⚠️ Firebase غير متصل", chat_id)
+                return
+
+            ref = firebase_db.reference(FIREBASE_PATH)
+            data = ref.get() or {}
+            total = len(data)
+            stats = {}
+            for case in data.values():
+                s = case.get("status", "unknown")
+                stats[s] = stats.get(s, 0) + 1
+
+            lines = [
+                f"📊 <b>إحصائيات الطلبات</b>",
+                "━━━━━━━━━━━━━━━━━━━━",
+                f"📦 <b>إجمالي الطلبات:</b> {total}",
+            ]
+            for status, label in STATUS_LABELS.items():
+                count = stats.get(status, 0)
+                if count:
+                    lines.append(f"{label}: {count}")
+
+            lines.append("━━━━━━━━━━━━━━━━━━━━")
+            lines.append(f"🕐 {datetime.now().strftime('%Y-%m-%d %H:%M')}")
+            send_telegram_message_sync("\n".join(lines), chat_id)
+
+        except Exception as e:
+            logger.error(f"خطأ في الإحصائيات: {e}")
+            send_telegram_message_sync("❌ حدث خطأ في جلب الإحصائيات", chat_id)
+
+    def run_polling(self):
+        logger.info("🤖 بدء تشغيل بوت تلغرام (polling)...")
+        while True:
+            try:
+                updates = self.get_updates()
+                for update in updates:
+                    self.offset = update["update_id"] + 1
+                    self.handle_update(update)
+            except KeyboardInterrupt:
+                logger.info("🛑 تم إيقاف البوت")
+                break
+            except Exception as e:
+                logger.error(f"❌ خطأ في polling: {e}")
+                time.sleep(5)
+
+
+# ─── نقطة الدخول الرئيسية ─────────────────────────────────────
+def main():
+    logger.info("=" * 50)
+    logger.info("🚀 El Ashry Pro - Telegram Bot بدء التشغيل")
+    logger.info("=" * 50)
+
+    if not BOT_TOKEN:
+        logger.error("❌ BOT_TOKEN غير محدد في المتغيرات البيئية!")
+        return
+
+    if not CHANNEL_ID:
+        logger.warning("⚠️ CHANNEL_ID غير محدد - لن يتم إرسال الإشعارات للقناة")
+
+    firebase_ok = init_firebase()
+
+    # إرسال رسالة تشغيل
+    startup_msg = (
+        "🚀 <b>El Ashry Pro Bot - تم التشغيل</b>\n"
+        f"🕐 {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n"
+        f"🔗 Firebase: {'✅ متصل' if firebase_ok else '❌ غير متصل'}\n"
+        "👀 المراقبة نشطة..."
+    )
+    send_telegram_message_sync(startup_msg)
+
+    if firebase_ok:
+        # تشغيل المراقبة في thread منفصل
+        import threading
+
+        monitor = FirebaseMonitor()
+        monitor_thread = threading.Thread(
+            target=monitor.run_monitoring_loop,
+            kwargs={"interval": 30},
+            daemon=True,
+        )
+        monitor_thread.start()
+        logger.info("✅ مراقبة Firebase نشطة في الخلفية")
+
+    # تشغيل بوت تلغرام
+    bot = TelegramBot()
+    bot.run_polling()
+
+
+if __name__ == "__main__":
+    main()
