@@ -116,12 +116,45 @@ async function setBotCommands() {
 // ===== Firebase Helpers =====
 async function getAllCases() {
   const snap = await get(ref(db, "cases"));
-  return snap.val() ? Object.values(snap.val()) : [];
+  const cases = snap.val() ? Object.values(snap.val()) : [];
+  // ✅ تحويل البيانات القديمة إلى الصيغة الجديدة
+  return cases.map(c => normalizeCaseData(c));
 }
 
 async function getCaseById(id) {
   const snap = await get(ref(db, `cases/${id}`));
-  return snap.val();
+  const data = snap.val();
+  // ✅ تحويل البيانات القديمة إلى الصيغة الجديدة
+  return data ? normalizeCaseData(data) : null;
+}
+
+// ✅ دالة لتحويل البيانات القديمة إلى الصيغة الجديدة (Backward Compatible)
+function normalizeCaseData(c) {
+  return {
+    // البيانات الأساسية
+    id: c.id,
+    caseNumber: c.caseNumber,
+    createdAt: c.createdAt ? new Date(c.createdAt).getTime() : Date.now(),
+    updatedAt: c.updatedAt ? new Date(c.updatedAt).getTime() : Date.now(),
+    
+    // البيانات الشخصية (دعم الصيغة القديمة والجديدة)
+    personName: c.personName || c.name || "",
+    personPhone: c.personPhone || c.phone || "",
+    nationalId: c.nationalId || "",
+    
+    // بيانات الطلب
+    serviceType: c.serviceType || c.service || "",
+    description: c.description || c.desc || "",
+    
+    // البيانات الإضافية
+    status: c.status || "under_review",
+    documents: c.documents || [],
+    response: c.response || "",
+    rejectionReason: c.rejectionReason || "",
+    
+    // الحقول القديمة (للتوافق)
+    ...c
+  };
 }
 
 async function createCase(data) {
@@ -616,24 +649,38 @@ async function handleSession(chatId, msg, session) {
 
     case "attach_awaiting_case_info":
       {
-        const query = text.trim();
+        const query = text.trim().toLowerCase();
         if (!query) {
           await sendMessage(chatId, "⚠️ أدخل رقم الطلب أو اسم الشخص:");
           return;
         }
         
-        // ✅ البحث عن الطلب بالرقم أو الاسم
+        // ✅ البحث عن الطلب بالرقم أو الاسم (محسّن)
         const allCases = await getAllCases();
-        const c = allCases.find(x =>
-          x.caseNumber?.toLowerCase().includes(query.toLowerCase()) ||
-          x.personName?.toLowerCase().includes(query.toLowerCase()) ||
-          x.id === query
-        );
+        const c = allCases.find(x => {
+          const caseNum = String(x.caseNumber || "").toLowerCase();
+          const personName = (x.personName || "").toLowerCase();
+          const id = (x.id || "").toLowerCase();
+          
+          return (
+            // ✅ البحث برقم كامل (EA-202606-0001)
+            caseNum.includes(query) ||
+            // ✅ البحث برقم قصير (1، 2، 0001، إلخ)
+            caseNum.endsWith(query) ||
+            // ✅ البحث باسم الشخص أو جزء منه
+            personName.includes(query) ||
+            // ✅ البحث بـ ID الداخلي
+            id === query
+          );
+        });
         
         if (!c) {
           await sendMessage(chatId, 
             `❌ لم يتم العثور على طلب لـ: <b>${query}</b>\n\n` +
-            `جرب رقم آخر أو اسم آخر`
+            `جرب:\n` +
+            `• رقم الطلب الكامل (EA-202606-0001)\n` +
+            `• رقم مختصر (1 أو 2)\n` +
+            `• اسم الشخص (أحمد)`
           );
           return;
         }
