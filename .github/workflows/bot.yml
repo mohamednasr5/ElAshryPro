@@ -1,50 +1,46 @@
-name: 🤖 El Ashry Pro Bot
+name: Run Telegram Bot
 
 on:
-  workflow_dispatch:
-  schedule:
-    - cron: "0 */5 * * *"
+  workflow_dispatch:        # تشغيل يدوي
   push:
-    branches:
-      - main
+    branches: [main]        # أو عند رفع كود جديد
+  schedule:
+    - cron: '0 */5 * * *'  # كل 5 ساعات تلقائياً (قبل انتهاء الـ 350 دقيقة)
 
-# ✅ منع تشغيل أكثر من بوت في نفس الوقت - يحل مشكلة تكرار الردود
 concurrency:
-  group: el-ashry-bot-single
-  cancel-in-progress: true
+  group: telegram-bot       # يمنع تشغيل نسختين معاً
+  cancel-in-progress: true  # يلغي الـ run القديم تلقائياً
 
 jobs:
   run-bot:
-    name: 🚀 تشغيل البوت
     runs-on: ubuntu-latest
-    timeout-minutes: 290
+    timeout-minutes: 350
 
     steps:
-      - name: 📥 Checkout Repository
+      - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: 🟢 Setup Node.js
-        uses: actions/setup-node@v4
+      - name: Setup Python
+        uses: actions/setup-python@v5
         with:
-          node-version: "20"
-          cache: ""
+          python-version: "3.11"
 
-      - name: 📦 Install Dependencies
-        run: npm install
+      - name: Install dependencies
+        run: pip install -r requirements.txt
 
-      - name: ⏳ انتظار إيقاف النسخة السابقة
-        run: |
-          echo "⏳ انتظار 15 ثانية للتأكد من إيقاف أي نسخة سابقة..."
-          sleep 15
-          echo "✅ جاهز للتشغيل"
-
-      - name: 🤖 Run Bot
+      - name: Kill old bot connections
         env:
-          BOT_TOKEN:    ${{ secrets.BOT_TOKEN }}
-          CHANNEL_ID:   ${{ secrets.CHANNEL_ID }}
-          BOT_PASSWORD: ${{ secrets.BOT_PASSWORD }}
-        run: node bot.js
+          BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
+        run: |
+          curl -s "https://api.telegram.org/bot${BOT_TOKEN}/deleteWebhook?drop_pending_updates=true"
+          sleep 3
 
-      - name: ⚠️ Bot Stopped
-        if: failure()
-        run: echo "❌ البوت وقف - سيعيد التشغيل في الدورة القادمة"
+      - name: Run bot
+        env:
+          BOT_TOKEN:                 ${{ secrets.BOT_TOKEN }}
+          FIREBASE_CREDENTIALS_JSON: ${{ secrets.FIREBASE_CREDENTIALS_JSON }}
+          FIREBASE_URL:              ${{ secrets.FIREBASE_URL }}
+          BOT_PASSWORD:              ${{ secrets.BOT_PASSWORD }}
+          FIREBASE_PATH:             ${{ secrets.FIREBASE_PATH }}
+          PORT:                      "8080"
+        run: python bot.py
