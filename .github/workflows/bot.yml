@@ -34,6 +34,10 @@ jobs:
         run: |
           curl -s "https://api.telegram.org/bot${BOT_TOKEN}/deleteWebhook?drop_pending_updates=true"
           sleep 3
+          - name: Check installed packages
+  run: |
+    pip list
+    python -c "import aiohttp; print(aiohttp.__version__)"
 
       - name: Run bot
         env:
