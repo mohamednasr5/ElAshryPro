@@ -7,8 +7,14 @@ branches:
 - main
 
 jobs:
-run-bot:
-runs-on: ubuntu-latest
+- name: Debug
+  run: |
+    python --version
+    pip list | grep aiohttp || true
+    python -c "import aiohttp; print('AIOHTTP INSTALLED')"
+
+- name: Run Bot
+  run: python bot.py
 
 ```
 steps:
