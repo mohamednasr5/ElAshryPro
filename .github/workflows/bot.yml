@@ -1,14 +1,9 @@
-name: 🤖 El Ashry Pro Bot 
+name: 🤖 El Ashry Pro Bot
 
 on:
-  # ✅ تشغيل يدوي من GitHub
   workflow_dispatch:
-
-  # ✅ إعادة تشغيل تلقائية كل 5 ساعات (cron بالـ UTC)
   schedule:
     - cron: "0 */5 * * *"
-
-  # ✅ تشغيل عند كل push على main
   push:
     branches:
       - main
@@ -17,25 +12,22 @@ jobs:
   run-bot:
     name: 🚀 تشغيل البوت
     runs-on: ubuntu-latest
-    timeout-minutes: 290  # أقل من 5 ساعات بشوية عشان يلحق الـ schedule القادم
+    timeout-minutes: 290
 
     steps:
-      # 1️⃣ سحب الكود
       - name: 📥 Checkout Repository
         uses: actions/checkout@v4
 
-      # 2️⃣ تثبيت Node.js
       - name: 🟢 Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: "20"
-          cache: "npm"
+          # ❌ شيلنا cache: npm عشان هو اللي بيطلب lock file
 
-      # 3️⃣ تثبيت المكتبات
       - name: 📦 Install Dependencies
-        run: npm ci
+        run: npm install
+        # ✅ npm install مش محتاج package-lock.json
 
-      # 4️⃣ تشغيل البوت مع المتغيرات من GitHub Secrets
       - name: 🤖 Run Bot
         env:
           BOT_TOKEN:    ${{ secrets.BOT_TOKEN }}
@@ -43,7 +35,6 @@ jobs:
           BOT_PASSWORD: ${{ secrets.BOT_PASSWORD }}
         run: node elashry_bot.js
 
-      # 5️⃣ لو البوت وقف بسبب خطأ، اطبع رسالة
       - name: ⚠️ Bot Stopped
         if: failure()
-        run: echo "❌ البوت وقف بسبب خطأ - سيعيد التشغيل في الدورة القادمة"
+        run: echo "❌ البوت وقف - سيعيد التشغيل في الدورة القادمة"
