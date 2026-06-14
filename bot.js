@@ -1198,23 +1198,55 @@ async function startPolling() {
   console.log(`🕐 ${new Date().toLocaleString("ar-EG")}`);
   console.log("─────────────────────────────────────────");
 
-  // ✅ التأكد من عدم وجود webhook نشط (يمنع التكرار)
+  // ===== 1) حذف أي webhook نشط =====
+  console.log("🔍 فحص webhook...");
   const webhookInfo = await tg("getWebhookInfo");
   if (webhookInfo.ok && webhookInfo.result && webhookInfo.result.url) {
     console.log("⚠️ يوجد webhook نشط، جاري الحذف...");
     await tg("deleteWebhook", { drop_pending_updates: false });
+    console.log("✅ تم حذف الـ webhook");
+  } else {
+    console.log("✅ لا يوجد webhook");
   }
 
-  // ✅ استرجاع آخر update_id لعدم معالجة تحديثات قديمة
-  try {
-    const initialRes = await tg("getUpdates", { offset: -1, timeout: 0 });
-    if (initialRes.ok && initialRes.result && initialRes.result.length > 0) {
-      lastUpdateId = initialRes.result[0].update_id;
-      console.log(`✅ آخر تحديث معروف: ${lastUpdateId}`);
+  // ===== 2) إيقاف أي نسخة أخرى تعمل بنفس التوكن =====
+  // الطريقة: إرسال getUpdates متكرر بـ timeout=0 لـ "سحب" الجلسة من أي polling آخر
+  console.log("🔄 إيقاف أي بوت آخر يعمل بنفس التوكن...");
+  let kicked = false;
+  for (let attempt = 1; attempt <= 5; attempt++) {
+    try {
+      const kickRes = await tg("getUpdates", { offset: -1, timeout: 0 });
+      if (kickRes.ok) {
+        if (attempt === 1) {
+          console.log(`✅ تم الاستيلاء على الجلسة (محاولة ${attempt})`);
+        }
+        kicked = true;
+        // استرجاع آخر update_id
+        if (kickRes.result && kickRes.result.length > 0) {
+          lastUpdateId = kickRes.result[0].update_id;
+          console.log(`✅ آخر تحديث معروف: ${lastUpdateId}`);
+        }
+        break;
+      } else if (kickRes.description && kickRes.description.includes('Conflict')) {
+        // يوجد بوت آخر يعمل — ننتظر ثم نحاول مرة أخرى
+        console.warn(`⏳ يوجد بوت آخر نشط (محاولة ${attempt}/5)، انتظار 3 ثوانٍ...`);
+        await new Promise(r => setTimeout(r, 3000));
+      } else {
+        console.warn(`⚠️ محاولة ${attempt}: ${kickRes.description || "خطأ غير معروف"}`);
+        await new Promise(r => setTimeout(r, 2000));
+      }
+    } catch (e) {
+      console.warn(`⚠️ خطأ في محاولة ${attempt}:`, e.message);
+      await new Promise(r => setTimeout(r, 2000));
     }
-  } catch (e) {
-    console.warn("⚠️ لم يتم استرجاع آخر تحديث:", e.message);
   }
+
+  if (!kicked) {
+    console.warn("⚠️ لم نتمكن من إيقاف البوت الآخر، سنبدأ على أي حال...");
+  }
+
+  // انتظار قصير للتأكد من انتهاء الجلسة القديمة
+  await new Promise(r => setTimeout(r, 1000));
 
   await setBotCommands();
   scheduleAutoRestart();
