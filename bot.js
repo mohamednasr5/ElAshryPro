@@ -51,26 +51,40 @@ const userSessions = new Map();
 
 // ===== Telegram API =====
 async function tg(method, data = {}) {
-  const url     = `https://api.telegram.org/bot${BOT_TOKEN}/${method}`;
-  const hasFile = data.document || data.photo;
+  try {
+    const url     = `https://api.telegram.org/bot${BOT_TOKEN}/${method}`;
+    const hasFile = data.document || data.photo;
 
-  if (hasFile) {
-    const formData = new FormData();
-    for (const [k, v] of Object.entries(data)) formData.append(k, v);
-    const res = await fetch(url, { method: "POST", body: formData });
+    if (hasFile) {
+      const formData = new FormData();
+      for (const [k, v] of Object.entries(data)) formData.append(k, v);
+      const res = await fetch(url, { method: "POST", body: formData });
+      return res.json();
+    }
+
+    const res = await fetch(url, {
+      method:  "POST",
+      headers: { "Content-Type": "application/json" },
+      body:    JSON.stringify(data)
+    });
     return res.json();
+  } catch (error) {
+    console.error(`❌ Telegram API Error (${method}):`, error.message);
+    return { ok: false, error: error.message };
   }
-
-  const res = await fetch(url, {
-    method:  "POST",
-    headers: { "Content-Type": "application/json" },
-    body:    JSON.stringify(data)
-  });
-  return res.json();
 }
 
 async function sendMessage(chatId, text, extra = {}) {
-  return tg("sendMessage", { chat_id: chatId, text, parse_mode: "HTML", ...extra });
+  try {
+    if (!chatId || !text) {
+      console.error("❌ sendMessage: chatId or text is missing", { chatId, text: text?.slice(0, 50) });
+      return null;
+    }
+    return tg("sendMessage", { chat_id: chatId, text, parse_mode: "HTML", ...extra });
+  } catch (error) {
+    console.error("❌ Error sending message:", error.message);
+    return null;
+  }
 }
 
 async function sendDocument(chatId, fileId, caption = "") {
@@ -143,12 +157,17 @@ async function deleteCase(id) {
 async function searchCases(query) {
   const all = await getAllCases();
   const q   = query.toLowerCase();
-  return all.filter(c =>
-    c.personName.toLowerCase().includes(q) ||
-    c.caseNumber.toLowerCase().includes(q) ||
-    (c.nationalId  || "").includes(q) ||
-    (c.personPhone || "").includes(q)
-  );
+  return all.filter(c => {
+    try {
+      return (c.personName    ? c.personName.toLowerCase().includes(q)    : false) ||
+             (c.caseNumber    ? c.caseNumber.toString().toLowerCase().includes(q) : false) ||
+             (c.nationalId    ? c.nationalId.toString().includes(q)       : false) ||
+             (c.personPhone   ? c.personPhone.toString().includes(q)      : false);
+    } catch (e) {
+      console.error("❌ خطأ في البحث:", e.message, c);
+      return false;
+    }
+  });
 }
 
 // ===== Save file to Telegram channel =====
@@ -365,7 +384,20 @@ async function handleUpdate(update) {
     await sendMessage(chatId, "🤔 أمر غير معروف\nاضغط /menu أو زر <b>Menu</b> للقائمة");
 
   } catch (err) {
-    console.error("handleUpdate error:", err);
+    console.error("❌ handleUpdate error:", {
+      message: err.message,
+      stack: err.stack,
+      update: update.update_id
+    });
+    // حاول إرسال رسالة خطأ للمستخدم إذا كان متاحًا
+    const chatId = update.message?.chat?.id || update.callback_query?.message?.chat?.id;
+    if (chatId) {
+      try {
+        await sendMessage(chatId, "⚠️ حدث خطأ في معالجة طلبك، حاول مرة أخرى");
+      } catch (e) {
+        // تجاهل الخطأ إذا فشل الإرسال
+      }
+    }
   }
 }
 
