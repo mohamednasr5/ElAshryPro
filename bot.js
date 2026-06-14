@@ -195,20 +195,26 @@ async function saveFileToChannel(fileId, fileName, caseNumber = "") {
 
 // ===== Format Case =====
 function formatCase(c) {
-  let text = `<b>📋 طلب #${c.caseNumber}</b>\n\n`;
-  text += `👤 <b>الاسم:</b> ${c.personName}\n`;
+  // ✅ Safe values: إذا كانت undefined، استخدم قيمة افتراضية
+  const caseNum = c.caseNumber || `#${c.id?.slice(0, 8) || "N/A"}`;
+  const personName = c.personName || "بدون اسم";
+  const serviceType = c.serviceType || "غير محدد";
+  const statusLabel = STATUS_LABELS[c.status] || c.status || "غير محدد";
+  
+  let text = `<b>📋 طلب ${caseNum}</b>\n\n`;
+  text += `👤 <b>الاسم:</b> ${personName}\n`;
   if (c.personPhone) {
     const wa = c.personPhone.replace(/^0/, "");
     text += `📱 <b>الهاتف:</b> <code>${c.personPhone}</code> | <a href="https://wa.me/2${wa}">واتساب</a>\n`;
   }
   if (c.nationalId)  text += `🆔 <b>الرقم القومي:</b> <code>${c.nationalId}</code>\n`;
-  text += `🏥 <b>الخدمة:</b> ${c.serviceType}\n`;
-  text += `📌 <b>الحالة:</b> ${STATUS_LABELS[c.status] || c.status}\n`;
+  text += `🏥 <b>الخدمة:</b> ${serviceType}\n`;
+  text += `📌 <b>الحالة:</b> ${statusLabel}\n`;
   if (c.description) text += `📝 <b>الوصف:</b> ${c.description}\n`;
   if (c.status === "responded" && c.response)        text += `💬 <b>الرد:</b> ${c.response}\n`;
   if (c.status === "rejected"  && c.rejectionReason) text += `❌ <b>سبب الرفض:</b> ${c.rejectionReason}\n`;
   if (c.documents && c.documents.length > 0)         text += `📎 <b>المستندات:</b> ${c.documents.length} ملف\n`;
-  const d = new Date(c.createdAt);
+  const d = new Date(c.createdAt || Date.now());
   text += `\n📅 ${d.toLocaleDateString("ar-EG", { year: "numeric", month: "long", day: "numeric", hour: "2-digit", minute: "2-digit" })}`;
   return text;
 }
@@ -268,10 +274,17 @@ function casesListKeyboard(cases, page = 0) {
   const start    = page * pageSize;
   const slice    = cases.slice(start, start + pageSize);
 
-  const buttons = slice.map(c => [{
-    text: `#${c.caseNumber} - ${c.personName} (${STATUS_LABELS[c.status]?.replace(/[✅⏳🔄💬❌]/g, "").trim() || c.status})`,
-    callback_data: `view_${c.id}`
-  }]);
+  const buttons = slice.map(c => {
+    // ✅ Safe display: إذا كانت undefined، استخدم قيمة افتراضية
+    const caseNum = c.caseNumber || `#${c.id?.slice(0, 8) || "N/A"}`;
+    const personName = c.personName || "بدون اسم";
+    const statusLabel = STATUS_LABELS[c.status]?.replace(/[✅⏳🔄💬❌]/g, "").trim() || c.status || "غير محدد";
+    
+    return [{
+      text: `${caseNum} - ${personName} (${statusLabel})`,
+      callback_data: `view_${c.id}`
+    }];
+  });
 
   const nav = [];
   if (page > 0)                        nav.push({ text: "◀️ السابق", callback_data: `page_${page - 1}` });
@@ -376,8 +389,7 @@ async function handleUpdate(update) {
       return;
     }
     if (text.startsWith("/attach")) {
-      const caseNumber = text.replace("/attach", "").trim();
-      await startAttachFile(chatId, caseNumber);
+      await startAttachFile(chatId);
       return;
     }
 
@@ -602,6 +614,50 @@ async function handleSession(chatId, msg, session) {
       await showCaseDetail(chatId, session.caseId);
       break;
 
+    case "attach_awaiting_case_info":
+      {
+        const query = text.trim();
+        if (!query) {
+          await sendMessage(chatId, "⚠️ أدخل رقم الطلب أو اسم الشخص:");
+          return;
+        }
+        
+        // ✅ البحث عن الطلب بالرقم أو الاسم
+        const allCases = await getAllCases();
+        const c = allCases.find(x =>
+          x.caseNumber?.toLowerCase().includes(query.toLowerCase()) ||
+          x.personName?.toLowerCase().includes(query.toLowerCase()) ||
+          x.id === query
+        );
+        
+        if (!c) {
+          await sendMessage(chatId, 
+            `❌ لم يتم العثور على طلب لـ: <b>${query}</b>\n\n` +
+            `جرب رقم آخر أو اسم آخر`
+          );
+          return;
+        }
+        
+        // ✅ عرض الطلب بالكامل
+        await sendMessage(chatId, formatCase(c));
+        
+        // ✅ الانتقال لحالة رفع الملفات
+        userSessions.set(chatId, {
+          state:      "attach_awaiting_files",
+          caseId:     c.id,
+          caseNumber: c.caseNumber || `#${c.id?.slice(0, 8)}`,
+          personName: c.personName || "بدون اسم",
+          documents:  c.documents || []
+        });
+        
+        await sendMessage(chatId,
+          `📎 <b>إضافة مستندات للطلب</b>\n\n` +
+          `من فضلك ارفع الملفات (صور أو مستندات)\n\n` +
+          `ارسل ملف أو أكثر، ثم اكتب <code>تم</code> لإنهاء`
+        );
+      }
+      break;
+
     case "attach_awaiting_file":
       await handleAttachFile(chatId, msg, session);
       break;
@@ -631,6 +687,42 @@ async function handleSession(chatId, msg, session) {
           `✅ تم رفع: <b>${fileName}</b> على القناة\n` +
           `📎 إجمالي مستندات الطلب: ${session.documents.length}\n\n` +
           `أرسل المزيد أو اكتب <code>تم</code>`
+        );
+      } else {
+        await sendMessage(chatId, "📎 أرسل ملف أو صورة، أو اكتب <code>تم</code> لإنهاء");
+      }
+      break;
+
+    case "attach_awaiting_files":
+      if (text.trim() === "تم") {
+        // ✅ حفظ الملفات المضافة
+        await updateCase(session.caseId, { documents: session.documents });
+        const addedCount = session.documents.length;
+        userSessions.delete(chatId);
+        
+        await sendMessage(chatId,
+          `✅ <b>تم إضافة الملفات بنجاح!</b>\n\n` +
+          `📎 عدد الملفات: ${addedCount}\n` +
+          `📋 الطلب: ${session.caseNumber}\n` +
+          `👤 صاحب الطلب: ${session.personName}`,
+          { reply_markup: mainMenuKeyboard() }
+        );
+      } else if (msg.document || msg.photo) {
+        const fileId   = msg.document?.file_id || msg.photo?.[msg.photo.length - 1]?.file_id;
+        const fileName = msg.document?.file_name || `صورة_${session.documents.length + 1}.jpg`;
+        const result   = await saveFileToChannel(fileId, fileName, session.caseNumber);
+        session.documents.push({
+          name:              fileName,
+          telegramFileId:    result ? result.fileId    : fileId,
+          telegramMessageId: result ? result.messageId : null,
+          type:              msg.document ? "document" : "image",
+          size:              msg.document?.file_size || 0,
+          uploadedAt:        Date.now()
+        });
+        await sendMessage(chatId,
+          `✅ تم رفع: <b>${fileName}</b>\n` +
+          `📎 إجمالي الملفات المضافة: ${session.documents.length}\n\n` +
+          `أرسل المزيد أو اكتب <code>تم</code> لإنهاء`
         );
       } else {
         await sendMessage(chatId, "📎 أرسل ملف أو صورة، أو اكتب <code>تم</code> لإنهاء");
@@ -683,9 +775,13 @@ async function showCaseDocuments(chatId, id) {
     return;
   }
 
+  // ✅ Safe values
+  const caseNum = c.caseNumber || `#${c.id?.slice(0, 8) || "N/A"}`;
+  const personName = c.personName || "بدون اسم";
+
   await sendMessage(chatId,
-    `📂 <b>مستندات الطلب #${c.caseNumber}</b>\n` +
-    `👤 ${c.personName}\n` +
+    `📂 <b>مستندات الطلب ${caseNum}</b>\n` +
+    `👤 ${personName}\n` +
     `📎 العدد: ${c.documents.length} ملف\n\n` +
     `جاري إرسال الملفات...`
   );
@@ -799,24 +895,12 @@ async function handleFileUpload(chatId, msg) {
 }
 
 // ===== Attach File to Case (via command) =====
-async function startAttachFile(chatId, caseNumber) {
-  if (!caseNumber) {
-    await sendMessage(chatId, "📝 مثال: <code>/attach EA-202606-0001</code>");
-    return;
-  }
-  const allCases = await getAllCases();
-  const c = allCases.find(x => x.caseNumber === caseNumber || x.id === caseNumber);
-  if (!c) { await sendMessage(chatId, `❌ لم يتم العثور على الحالة: ${caseNumber}`); return; }
-  userSessions.set(chatId, {
-    state:      "add_doc_awaiting_file",
-    caseId:     c.id,
-    caseNumber: c.caseNumber,
-    documents:  c.documents || []
-  });
+async function startAttachFile(chatId) {
+  userSessions.set(chatId, { state: "attach_awaiting_case_info" });
   await sendMessage(chatId,
-    `📎 <b>إضافة مستند للطلب #${c.caseNumber}</b>\n` +
-    `👤 ${c.personName}\n\n` +
-    `أرسل الملف أو الصورة، ثم اكتب <code>تم</code>`
+    `📎 <b>إضافة مستندات لطلب</b>\n\n` +
+    `أدخل <b>رقم الطلب</b> (مثل: EA-202606-0001)\n` +
+    `أو <b>اسم صاحب الطلب</b>`
   );
 }
 
