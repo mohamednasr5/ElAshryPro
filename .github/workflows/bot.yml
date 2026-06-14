@@ -22,11 +22,11 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: "20"
-          # ❌ شيلنا cache: npm عشان هو اللي بيطلب lock file
+          cache: ""
+          # ✅ "" يعطل الـ cache تماماً ويحل مشكلة lock file
 
       - name: 📦 Install Dependencies
         run: npm install
-        # ✅ npm install مش محتاج package-lock.json
 
       - name: 🤖 Run Bot
         env:
