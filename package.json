@@ -2,10 +2,10 @@
   "name": "elashry-bot",
   "version": "4.0.0",
   "description": "El Ashry Pro - Telegram Bot v4.0",
-  "main": "elashry_bot.js",
+  "main": "bot.js",
   "type": "commonjs",
   "scripts": {
-    "start": "node elashry_bot.js"
+    "start": "node bot.js"
   },
   "dependencies": {
     "firebase": "^10.14.1"
