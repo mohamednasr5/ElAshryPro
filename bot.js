@@ -61,6 +61,21 @@ const SERVICE_TYPES = [
 const authUsers    = new Set();
 const userSessions = new Map();
 
+// ===== منع تكرار معالجة نفس التحديث =====
+const processedUpdates = new Set();
+const MAX_PROCESSED    = 500;  // حد أقصى للذاكرة
+
+function isUpdateProcessed(updateId) {
+  if (processedUpdates.has(updateId)) return true;
+  processedUpdates.add(updateId);
+  // حذف الأقدم لو تجاوزنا الحد
+  if (processedUpdates.size > MAX_PROCESSED) {
+    const arr = [...processedUpdates];
+    arr.splice(0, arr.length - MAX_PROCESSED).forEach(id => processedUpdates.delete(id));
+  }
+  return false;
+}
+
 // ===== Telegram API =====
 async function tg(method, data = {}) {
   try {
@@ -168,7 +183,12 @@ function normalizeCaseData(c) {
     ? (typeof rawNum === 'number' ? `EA-${rawNum}` : String(rawNum))
     : null;
 
+  // ✅ الحقول القديمة أولاً (من Firebase) ثم القيم المحسوبة تستبدلها
   return {
+    // أولاً: الحقول الخام من Firebase (للتوافق مع الحقول غير المعالجة)
+    ...c,
+    
+    // ثانياً: القيم المحسوبة - تستبدل أي قيمة من ...c
     // البيانات الأساسية
     id: c.id || null,
     caseNumber: caseNumber || `#${c.id?.slice(0, 8) || "N/A"}`,
@@ -176,26 +196,25 @@ function normalizeCaseData(c) {
     updatedAt: c.updatedAt ? new Date(c.updatedAt).getTime() : Date.now(),
     
     // البيانات الشخصية (دعم الصيغة القديمة والجديدة)
-    personName: c.personName || c.name || "بدون اسم",
-    personPhone: c.personPhone || c.phone || "",
-    nationalId: c.nationalId || "",
+    // ✅ ...c قد يضع personName=undefined لو البيانات القديمة فيها name فقط
+    // لذلك نستخدم ?? بدل || عشان القيمة الفارغة "" تعتبر صحيحة
+    personName:  c.personName  ?? c.name  ?? "بدون اسم",
+    personPhone: c.personPhone ?? c.phone ?? "",
+    nationalId:  c.nationalId  ?? "",
     
     // بيانات الطلب
-    serviceType: c.serviceType || c.service || "غير محدد",
-    description: c.description || c.desc || "",
+    serviceType: c.serviceType ?? c.service ?? "غير محدد",
+    description: c.description ?? c.desc    ?? "",
     
     // البيانات الإضافية (دعم الحقول القديمة)
-    status: c.status || "under_review",
-    documents: c.documents || [],
-    response: c.response || "",
-    rejectionReason: c.rejectionReason || "",
-    country: c.country || "",
-    hospital: c.hospital || "",
-    submissionDate: c.submissionDate || "",
-    responseDate: c.responseDate || "",
-    
-    // الحقول القديمة (للتوافق)
-    ...c
+    status:          c.status          ?? "under_review",
+    documents:       c.documents       ?? [],
+    response:        c.response        ?? "",
+    rejectionReason: c.rejectionReason ?? "",
+    country:         c.country         ?? "",
+    hospital:        c.hospital        ?? "",
+    submissionDate:  c.submissionDate  ?? "",
+    responseDate:    c.responseDate    ?? ""
   };
 }
 
@@ -252,26 +271,76 @@ async function deleteCase(id) {
   });
 }
 
+// ===== بحث ذكي: يفصل الكلمات ويبحث بأي كلمة =====
+function smartMatch(text, query) {
+  if (!text || !query) return false;
+  const t = text.toLowerCase().replace(/[\u064B-\u065F]/g, ""); // إزالة التشكيل
+  const q = query.toLowerCase().replace(/[\u064B-\u065F]/g, "");
+  // بحث مباشر
+  if (t.includes(q)) return true;
+  // فصل كلمات البحث
+  const words = q.split(/\s+/).filter(w => w.length > 0);
+  if (words.length <= 1) return false;
+  // أي كلمة من البحث موجودة في النص
+  return words.some(word => t.includes(word));
+}
+
 async function searchCases(query) {
   const all = await getAllCases();
-  const q   = query.toLowerCase();
-  return all.filter(c => {
+  const q   = query.toLowerCase().trim();
+  if (!q) return [];
+  
+  // فصل كلمات البحث
+  const queryWords = q.split(/\s+/).filter(w => w.length > 0);
+  
+  // ترتيب النتائج حسب مدى التطابق
+  const scored = all.map(c => {
+    let score = 0;
     try {
-      const name  = (c.personName || c.name || "").toLowerCase();
-      const phone = (c.personPhone || c.phone || "").toLowerCase();
-      const num   = (c.caseNumber || "").toString().toLowerCase();
-      const natId = (c.nationalId || "").toLowerCase();
-      const country = (c.country || "").toLowerCase();
+      const name     = (c.personName || c.name || "").toLowerCase();
+      const phone    = (c.personPhone || c.phone || "").toLowerCase();
+      const num      = (c.caseNumber || "").toString().toLowerCase();
+      const natId    = (c.nationalId || "").toLowerCase();
+      const country  = (c.country || "").toLowerCase();
       const hospital = (c.hospital || "").toLowerCase();
-      const svc   = (c.serviceType || c.service || "").toLowerCase();
-      return name.includes(q)  || num.includes(q) || natId.includes(q) ||
-             phone.includes(q) || country.includes(q) || hospital.includes(q) ||
-             svc.includes(q);
+      const svc      = (c.serviceType || c.service || "").toLowerCase();
+      const desc     = (c.description || c.desc || "").toLowerCase();
+      
+      // تجميع كل الحقول القابلة للبحث
+      const allFields = [name, phone, num, natId, country, hospital, svc, desc];
+      
+      for (const field of allFields) {
+        // تطابق كامل للنص = أعلى نقاط
+        if (field === q) { score += 10; continue; }
+        // تطابق كامل من البداية = نقاط عالية
+        if (field.startsWith(q)) { score += 7; continue; }
+        // النص يحتوي على البحث بالكامل = نقاط جيدة
+        if (field.includes(q)) { score += 5; continue; }
+        // كل كلمة من البحث موجودة في الحقل
+        if (queryWords.length > 1) {
+          const allWordsMatch = queryWords.every(w => field.includes(w));
+          if (allWordsMatch) { score += 4; continue; }
+          // أي كلمة من البحث موجودة
+          const someWordsMatch = queryWords.some(w => field.includes(w));
+          if (someWordsMatch) { score += 2; continue; }
+        }
+        // بحث ذكي: كل كلمة في الحقل تحتوي على كلمة البحث أو العكس
+        const fieldWords = field.split(/\s+/);
+        for (const fw of fieldWords) {
+          for (const qw of queryWords) {
+            if (fw.includes(qw) || qw.includes(fw)) { score += 1; break; }
+          }
+        }
+      }
     } catch (e) {
       console.error("❌ خطأ في البحث:", e.message, c);
-      return false;
     }
-  });
+    return { case: c, score };
+  }).filter(item => item.score > 0);
+  
+  // ترتيب حسب النقاط (الأعلى أولاً)
+  scored.sort((a, b) => b.score - a.score);
+  return scored.map(item => item.case);
 }
 
 // ===== Save file to Telegram channel =====
@@ -347,6 +416,16 @@ function mainMenuKeyboard() {
 function caseDetailKeyboard(c) {
   const id           = c.id;
   const extraButtons = [];
+
+  // ✅ حماية: لو id غير موجود، رجع القائمة الرئيسية فقط
+  if (!id) {
+    console.error("❌ caseDetailKeyboard: id is missing for case:", c.caseNumber);
+    return {
+      inline_keyboard: [
+        [{ text: "🔙 القائمة الرئيسية", callback_data: "main_menu" }]
+      ]
+    };
+  }
 
   extraButtons.push([{ text: "📎 إضافة مستند", callback_data: `add_doc_${id}` }]);
 
@@ -887,9 +966,18 @@ async function showCasesList(chatId) {
 
 // ===== Case Detail =====
 async function showCaseDetail(chatId, id) {
-  const c = await getCaseById(id);
-  if (!c) { await sendMessage(chatId, "❌ الطلب غير موجود"); return; }
-  await sendMessage(chatId, formatCase(c), { reply_markup: caseDetailKeyboard(c) });
+  try {
+    const c = await getCaseById(id);
+    if (!c) {
+      console.error(`❌ الطلب غير موجود في Firebase: ${id}`);
+      await sendMessage(chatId, "❌ الطلب غير موجود\n💡 جرب عرض الطلبات من القائمة", { reply_markup: mainMenuKeyboard() });
+      return;
+    }
+    await sendMessage(chatId, formatCase(c), { reply_markup: caseDetailKeyboard(c) });
+  } catch (err) {
+    console.error(`❌ خطأ في عرض تفاصيل الطلب ${id}:`, err.message);
+    await sendMessage(chatId, "❌ حدث خطأ في عرض الطلب، حاول مرة أخرى", { reply_markup: mainMenuKeyboard() });
+  }
 }
 
 // ===== Case Documents =====
@@ -1097,6 +1185,24 @@ async function startPolling() {
   console.log(`🕐 ${new Date().toLocaleString("ar-EG")}`);
   console.log("─────────────────────────────────────────");
 
+  // ✅ التأكد من عدم وجود webhook نشط (يمنع التكرار)
+  const webhookInfo = await tg("getWebhookInfo");
+  if (webhookInfo.ok && webhookInfo.result && webhookInfo.result.url) {
+    console.log("⚠️ يوجد webhook نشط، جاري الحذف...");
+    await tg("deleteWebhook", { drop_pending_updates: false });
+  }
+
+  // ✅ استرجاع آخر update_id لعدم معالجة تحديثات قديمة
+  try {
+    const initialRes = await tg("getUpdates", { offset: -1, timeout: 0 });
+    if (initialRes.ok && initialRes.result && initialRes.result.length > 0) {
+      lastUpdateId = initialRes.result[0].update_id;
+      console.log(`✅ آخر تحديث معروف: ${lastUpdateId}`);
+    }
+  } catch (e) {
+    console.warn("⚠️ لم يتم استرجاع آخر تحديث:", e.message);
+  }
+
   await setBotCommands();
   scheduleAutoRestart();
 
@@ -1113,6 +1219,11 @@ async function startPolling() {
         pollingErrors = 0;
         for (const update of res.result) {
           lastUpdateId = update.update_id;
+          // ✅ منع تكرار معالجة نفس التحديث
+          if (isUpdateProcessed(update.update_id)) {
+            console.log(`⏭️ تخطي تحديث مكرر: ${update.update_id}`);
+            continue;
+          }
           await handleUpdate(update);
         }
       } else if (!res.ok) {
