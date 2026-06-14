@@ -19,7 +19,7 @@ logging.basicConfig(level=logging.INFO,
 logger = logging.getLogger(__name__)
 
 BOT_TOKEN                = os.getenv("BOT_TOKEN", "")
-CHANNEL_ID               = os.getenv("CHANNEL_ID", "")
+CHANNEL_ID               = os.getenv("CHANNEL_ID", "") or os.getenv("TELEGRAM_CHANNEL_ID", "")
 FIREBASE_URL             = os.getenv("FIREBASE_URL", "https://el-ashry-default-rtdb.firebaseio.com")
 FIREBASE_PATH            = os.getenv("FIREBASE_PATH", "cases")
 BOT_PASSWORD             = os.getenv("BOT_PASSWORD", "521988")
@@ -754,8 +754,16 @@ class Poller:
 
     def run(self):
         logger.info("🤖 Polling نشط...")
+        start_time = time.time()
+        MAX_RUNTIME = 4 * 3600 + 50 * 60  # 4 ساعات و50 دقيقة ثم إعادة تشغيل تلقائية
         while True:
             try:
+                # إيقاف تلقائي قبل انتهاء وقت GitHub Actions
+                if time.time() - start_time > MAX_RUNTIME:
+                    logger.info("⏰ انتهى وقت التشغيل (4h50m) — سيعيد GitHub Actions التشغيل تلقائياً")
+                    if CHANNEL_ID:
+                        send_msg("🔄 <b>إعادة تشغيل تلقائية</b>\n⏰ مرت 4 ساعات و50 دقيقة — جاري إعادة التشغيل...", CHANNEL_ID)
+                    break
                 r = requests.get(f"{TELEGRAM_API}/getUpdates",
                     params={"offset":self.offset,"timeout":30}, timeout=35)
                 updates = r.json().get("result",[]) if r.json().get("ok") else []
