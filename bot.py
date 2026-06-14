@@ -8,7 +8,7 @@ import json
 import logging
 import sys
 import asyncio
-import aiohttp
+import httpx
 from datetime import datetime
 from threading import Thread
 import http.server
@@ -1178,23 +1178,23 @@ async def kick_other_bots() -> None:
     """
     يحذف الـ webhook ثم يُرسل getUpdates متكرر لإزاحة
     أي نسخة أخرى تعمل بنفس التوكن (polling conflict).
+    يستخدم httpx (مثبّتة مع python-telegram-bot تلقائياً).
     """
     base_url = f"https://api.telegram.org/bot{BOT_TOKEN}"
 
-    async with aiohttp.ClientSession() as session:
+    async with httpx.AsyncClient() as client:
 
         # 1) حذف الـ webhook إن وُجد
         logger.info("🔍 فحص webhook...")
-        async with session.post(f"{base_url}/getWebhookInfo") as r:
-            info = await r.json()
+        r = await client.post(f"{base_url}/getWebhookInfo")
+        info = r.json()
         if info.get("result", {}).get("url"):
             logger.warning("⚠️ يوجد webhook نشط، جاري الحذف...")
-            async with session.post(
+            r = await client.post(
                 f"{base_url}/deleteWebhook",
                 json={"drop_pending_updates": False}
-            ) as r:
-                res = await r.json()
-            if res.get("result"):
+            )
+            if r.json().get("result"):
                 logger.info("✅ تم حذف الـ webhook")
         else:
             logger.info("✅ لا يوجد webhook")
@@ -1202,11 +1202,11 @@ async def kick_other_bots() -> None:
         # 2) إزاحة أي polling آخر عبر إرسال getUpdates متكرر
         logger.info("🔄 إيقاف أي بوت آخر يعمل بنفس التوكن...")
         for attempt in range(1, 6):
-            async with session.post(
+            r = await client.post(
                 f"{base_url}/getUpdates",
                 json={"offset": -1, "timeout": 0}
-            ) as r:
-                res = await r.json()
+            )
+            res = r.json()
 
             if res.get("ok"):
                 logger.info(f"✅ تم الاستيلاء على الجلسة (محاولة {attempt})")
