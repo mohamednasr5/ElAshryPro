@@ -32,6 +32,12 @@ jobs:
       - name: 📦 Install Dependencies
         run: npm install
 
+      - name: ⏳ انتظار إيقاف النسخة السابقة
+        run: |
+          echo "⏳ انتظار 15 ثانية للتأكد من إيقاف أي نسخة سابقة..."
+          sleep 15
+          echo "✅ جاهز للتشغيل"
+
       - name: 🤖 Run Bot
         env:
           BOT_TOKEN:    ${{ secrets.BOT_TOKEN }}
