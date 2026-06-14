@@ -522,19 +522,29 @@ async function handleUpdate(update) {
     const text   = msg.text || "";
 
     // ---- Auth ----
+    // ✅ /start دائماً يمسح الـ session القديمة ويبدأ من جديد
+    if (text.startsWith("/start")) {
+      userSessions.delete(chatId);
+      if (authUsers.has(chatId)) {
+        await sendMessage(chatId, "📋 <b>القائمة الرئيسية</b>", { reply_markup: mainMenuKeyboard() });
+      } else {
+        await sendMessage(chatId,
+          `🏥 <b>El Ashry Pro - بوت إدارة الحالات</b>\n\nللدخول، أرسل كلمة المرور:`
+        );
+      }
+      return;
+    }
+
     if (!authUsers.has(chatId)) {
-      if (text.trim() === BOT_PASSWORD || text.startsWith("/start " + BOT_PASSWORD)) {
+      if (text.trim() === BOT_PASSWORD) {
         authUsers.add(chatId);
+        userSessions.delete(chatId);
         await sendMessage(chatId,
           `✅ <b>تم تسجيل الدخول بنجاح!</b>\n\n` +
           `مرحباً بك في نظام <b>El Ashry Pro</b> 🏥\n` +
           `مكتب الحاج أحمد الحديدي - عضو مجلس النواب\n\n` +
           `اضغط زر <b>Menu</b> أسفل الشاشة للقائمة`,
           { reply_markup: mainMenuKeyboard() }
-        );
-      } else if (text.startsWith("/start")) {
-        await sendMessage(chatId,
-          `🏥 <b>El Ashry Pro - بوت إدارة الحالات</b>\n\nللدخول، أرسل كلمة المرور:`
         );
       } else {
         await sendMessage(chatId, "🔒 أرسل كلمة المرور للدخول:");
@@ -724,6 +734,7 @@ async function handleCallback(cb) {
 async function handleSession(chatId, msg, session) {
   const text = msg.text || "";
 
+  try {
   switch (session.state) {
 
     case "add_name":
@@ -950,6 +961,11 @@ async function handleSession(chatId, msg, session) {
       await sendMessage(chatId, "🤔 حالة غير معروفة، اضغط /menu");
       userSessions.delete(chatId);
       break;
+  }
+  } catch (err) {
+    console.error("❌ handleSession error:", err.message, "state:", session?.state);
+    userSessions.delete(chatId);
+    await sendMessage(chatId, "⚠️ حدث خطأ، تم إعادة تعيين الجلسة.\nاضغط /menu للقائمة الرئيسية", { reply_markup: mainMenuKeyboard() });
   }
 }
 
