@@ -21,10 +21,22 @@ const FIREBASE_CONFIG = {
 
 // ===== Firebase Init =====
 const { initializeApp } = require("firebase/app");
-const { getDatabase, ref, set, get, update, remove, push } = require("firebase/database");
+const { getDatabase, ref, set, get, update, remove, push, onValue } = require("firebase/database");
 
 const firebaseApp = initializeApp(FIREBASE_CONFIG);
 const db          = getDatabase(firebaseApp);
+
+// ===== Firebase Connection Monitor =====
+let firebaseConnected = true;
+const connRef = ref(db, ".info/connected");
+onValue(connRef, (snap) => {
+  firebaseConnected = snap.val() === true;
+  if (firebaseConnected) {
+    console.log("✅ Firebase: متصل");
+  } else {
+    console.warn("⚠️ Firebase: غير متصل - جاري إعادة المحاولة...");
+  }
+});
 
 // ===== Constants =====
 const STATUS_LABELS = {
@@ -114,18 +126,36 @@ async function setBotCommands() {
 }
 
 // ===== Firebase Helpers =====
+// ===== Firebase Retry Helper =====
+async function firebaseRetry(fn, retries = 3, delay = 2000) {
+  for (let i = 0; i < retries; i++) {
+    try {
+      return await fn();
+    } catch (err) {
+      console.error(`❌ Firebase attempt ${i + 1}/${retries} failed:`, err.message);
+      if (i < retries - 1) {
+        await new Promise(r => setTimeout(r, delay * (i + 1)));
+      } else {
+        throw err;
+      }
+    }
+  }
+}
+
 async function getAllCases() {
-  const snap = await get(ref(db, "cases"));
-  const cases = snap.val() ? Object.values(snap.val()) : [];
-  // ✅ تحويل البيانات القديمة إلى الصيغة الجديدة
-  return cases.map(c => normalizeCaseData(c));
+  return firebaseRetry(async () => {
+    const snap = await get(ref(db, "cases"));
+    const cases = snap.val() ? Object.values(snap.val()) : [];
+    return cases.map(c => normalizeCaseData(c));
+  });
 }
 
 async function getCaseById(id) {
-  const snap = await get(ref(db, `cases/${id}`));
-  const data = snap.val();
-  // ✅ تحويل البيانات القديمة إلى الصيغة الجديدة
-  return data ? normalizeCaseData(data) : null;
+  return firebaseRetry(async () => {
+    const snap = await get(ref(db, `cases/${id}`));
+    const data = snap.val();
+    return data ? normalizeCaseData(data) : null;
+  });
 }
 
 // ✅ دالة لتحويل البيانات القديمة إلى الصيغة الجديدة (Backward Compatible)
@@ -158,33 +188,39 @@ function normalizeCaseData(c) {
 }
 
 async function createCase(data) {
-  const newRef = push(ref(db, "cases"));
-  const id     = newRef.key;
-  const now    = Date.now();
-  const d      = new Date();
-  const all    = await getAllCases();
-  const num    = `EA-${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, "0")}-${String(all.length + 1).padStart(4, "0")}`;
-  const caseData = { id, caseNumber: num, ...data, createdAt: now, updatedAt: now };
-  await set(newRef, caseData);
-  return caseData;
+  return firebaseRetry(async () => {
+    const newRef = push(ref(db, "cases"));
+    const id     = newRef.key;
+    const now    = Date.now();
+    const d      = new Date();
+    const all    = await getAllCases();
+    const num    = `EA-${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, "0")}-${String(all.length + 1).padStart(4, "0")}`;
+    const caseData = { id, caseNumber: num, ...data, createdAt: now, updatedAt: now };
+    await set(newRef, caseData);
+    return caseData;
+  });
 }
 
 async function updateCase(id, data) {
-  await update(ref(db, `cases/${id}`), { ...data, updatedAt: Date.now() });
+  return firebaseRetry(async () => {
+    await update(ref(db, `cases/${id}`), { ...data, updatedAt: Date.now() });
+  });
 }
 
 async function deleteCase(id) {
-  const c = await getCaseById(id);
-  if (c && c.documents) {
-    for (const doc of c.documents) {
-      if (doc.telegramMessageId) {
-        try {
-          await tg("deleteMessage", { chat_id: CHANNEL_ID, message_id: doc.telegramMessageId });
-        } catch (e) {}
+  return firebaseRetry(async () => {
+    const c = await getCaseById(id);
+    if (c && c.documents) {
+      for (const doc of c.documents) {
+        if (doc.telegramMessageId) {
+          try {
+            await tg("deleteMessage", { chat_id: CHANNEL_ID, message_id: doc.telegramMessageId });
+          } catch (e) {}
+        }
       }
     }
-  }
-  await remove(ref(db, `cases/${id}`));
+    await remove(ref(db, `cases/${id}`));
+  });
 }
 
 async function searchCases(query) {
@@ -1022,6 +1058,7 @@ async function startPolling() {
   await setBotCommands();
   scheduleAutoRestart();
 
+  let pollingErrors = 0;
   while (true) {
     try {
       const res = await tg("getUpdates", {
@@ -1031,14 +1068,35 @@ async function startPolling() {
       });
 
       if (res.ok && res.result) {
+        pollingErrors = 0;
         for (const update of res.result) {
           lastUpdateId = update.update_id;
           await handleUpdate(update);
         }
+      } else if (!res.ok) {
+        pollingErrors++;
+        console.error(`❌ Telegram API Error (${pollingErrors}):`, res.description || res.error || JSON.stringify(res));
+        if (res.description && res.description.includes('Conflict')) {
+          console.warn("⚠️ تحديث متعارض - قد يكون هناك بوت آخر يعمل بنفس التوكن!");
+          await new Promise(r => setTimeout(r, 10000));
+        } else if (res.description && res.description.includes('429')) {
+          console.warn("⚠️ تجاوز حد الطلبات - انتظار 30 ثانية...");
+          await new Promise(r => setTimeout(r, 30000));
+        } else {
+          await new Promise(r => setTimeout(r, 5000));
+        }
       }
     } catch (err) {
-      console.error("Polling error:", err.message);
-      await new Promise(r => setTimeout(r, 3000));
+      pollingErrors++;
+      console.error(`❌ Polling error (${pollingErrors}):`, err.message);
+      // Exponential backoff
+      const waitTime = Math.min(3000 * Math.pow(2, Math.min(pollingErrors - 1, 5)), 60000);
+      await new Promise(r => setTimeout(r, waitTime));
+      // إعادة تشغيل البوت لو الأخطاء كثيرة جداً
+      if (pollingErrors > 20) {
+        console.error("❌ أخطاء كثيرة جداً - إعادة تشغيل البوت...");
+        process.exit(1);
+      }
     }
   }
 }
