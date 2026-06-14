@@ -6,14 +6,18 @@ on:
     branches:
       - main
   schedule:
-    # إعادة تشغيل تلقائية كل 5 ساعات
     - cron: '0 */5 * * *'
+
+# ─── هذا يمنع تشغيل أكثر من workflow في نفس الوقت ───
+concurrency:
+  group: telegram-bot-singleton
+  cancel-in-progress: true
 
 jobs:
   run-bot:
     name: Run Telegram Bot
     runs-on: ubuntu-latest
-    timeout-minutes: 310  # أقل بقليل من 5 ساعات (GitHub Actions يوقف بعد 6 ساعات)
+    timeout-minutes: 310
 
     steps:
       - name: Checkout
@@ -29,40 +33,37 @@ jobs:
           python -m pip install --upgrade pip
           pip install firebase-admin requests python-dotenv
 
-      # ─── إيقاف أي بوت قديم شغال ───────────────────────────
-      - name: Kill any running bot (close old sessions)
+      # ─── إيقاف أي بوت قديم وتنظيف الـ queue ──────────
+      - name: Kill old bot sessions
         env:
           BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
         run: |
-          echo "🛑 إيقاف أي session قديم للبوت..."
           python - <<'PYEOF'
 import requests, os, time
 
 token = os.environ["BOT_TOKEN"]
 api = f"https://api.telegram.org/bot{token}"
 
-# إلغاء أي webhook قديم وتنظيف الـ pending updates
+# إلغاء أي webhook وحذف كل الرسائل المعلقة دفعة واحدة
 requests.post(f"{api}/deleteWebhook", json={"drop_pending_updates": True}, timeout=15)
-print("✅ تم إلغاء الـ webhook وحذف الرسائل المعلقة")
+print("✅ تم حذف الـ webhook والرسائل المعلقة")
 
-# انتظار ثانيتين للتأكد
-time.sleep(2)
+time.sleep(3)
 
-# جلب آخر update_id لتخطي كل الرسائل القديمة
+# تخطي أي updates متبقية
 r = requests.get(f"{api}/getUpdates", params={"timeout": 1, "limit": 100}, timeout=10)
 updates = r.json().get("result", [])
 if updates:
     last_id = updates[-1]["update_id"]
-    # تأكيد استلام كل الرسائل القديمة
     requests.get(f"{api}/getUpdates", params={"offset": last_id + 1, "timeout": 1}, timeout=10)
-    print(f"✅ تم تخطي {len(updates)} رسالة قديمة (آخر ID: {last_id})")
+    print(f"✅ تم تخطي {len(updates)} رسالة قديمة")
 else:
-    print("✅ لا توجد رسائل قديمة")
+    print("✅ لا توجد رسائل معلقة")
 
-print("🚀 جاهز لتشغيل البوت الجديد")
+print("🚀 البوت جاهز للتشغيل")
 PYEOF
 
-      # ─── تشغيل البوت ───────────────────────────────────────
+      # ─── تشغيل البوت ────────────────────────────────────
       - name: Run Bot
         env:
           BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
@@ -72,6 +73,4 @@ PYEOF
           FIREBASE_URL: ${{ secrets.FIREBASE_URL }}
           FIREBASE_PATH: ${{ secrets.FIREBASE_PATH }}
           BOT_PASSWORD: ${{ secrets.BOT_PASSWORD }}
-        run: |
-          echo "🤖 تشغيل البوت..."
-          python bot.py
+        run: python bot.py
