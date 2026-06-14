@@ -8,6 +8,11 @@ on:
     branches:
       - main
 
+# ✅ منع تشغيل أكثر من بوت في نفس الوقت - يحل مشكلة تكرار الردود
+concurrency:
+  group: el-ashry-bot-single
+  cancel-in-progress: true
+
 jobs:
   run-bot:
     name: 🚀 تشغيل البوت
@@ -23,7 +28,6 @@ jobs:
         with:
           node-version: "20"
           cache: ""
-          # ✅ "" يعطل الـ cache تماماً ويحل مشكلة lock file
 
       - name: 📦 Install Dependencies
         run: npm install
