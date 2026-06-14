@@ -145,8 +145,9 @@ async function firebaseRetry(fn, retries = 3, delay = 2000) {
 async function getAllCases() {
   return firebaseRetry(async () => {
     const snap = await get(ref(db, "cases"));
-    const cases = snap.val() ? Object.values(snap.val()) : [];
-    return cases.map(c => normalizeCaseData(c));
+    const data = snap.val() || {};
+    // ✅ استخدام Object.entries للحصول على مفتاح Firebase كـ id
+    return Object.entries(data).map(([id, val]) => normalizeCaseData({ id, ...val }));
   });
 }
 
@@ -154,33 +155,44 @@ async function getCaseById(id) {
   return firebaseRetry(async () => {
     const snap = await get(ref(db, `cases/${id}`));
     const data = snap.val();
-    return data ? normalizeCaseData(data) : null;
+    // ✅ إضافة id للبيانات لأن Firebase لا تخزنه داخل الكائن
+    return data ? normalizeCaseData({ id, ...data }) : null;
   });
 }
 
 // ✅ دالة لتحويل البيانات القديمة إلى الصيغة الجديدة (Backward Compatible)
 function normalizeCaseData(c) {
+  // ✅ تحويل caseNumber لصيغة موحدة (رقم أو نص)
+  const rawNum = c.caseNumber;
+  const caseNumber = rawNum != null
+    ? (typeof rawNum === 'number' ? `EA-${rawNum}` : String(rawNum))
+    : null;
+
   return {
     // البيانات الأساسية
-    id: c.id,
-    caseNumber: c.caseNumber,
+    id: c.id || null,
+    caseNumber: caseNumber || `#${c.id?.slice(0, 8) || "N/A"}`,
     createdAt: c.createdAt ? new Date(c.createdAt).getTime() : Date.now(),
     updatedAt: c.updatedAt ? new Date(c.updatedAt).getTime() : Date.now(),
     
     // البيانات الشخصية (دعم الصيغة القديمة والجديدة)
-    personName: c.personName || c.name || "",
+    personName: c.personName || c.name || "بدون اسم",
     personPhone: c.personPhone || c.phone || "",
     nationalId: c.nationalId || "",
     
     // بيانات الطلب
-    serviceType: c.serviceType || c.service || "",
+    serviceType: c.serviceType || c.service || "غير محدد",
     description: c.description || c.desc || "",
     
-    // البيانات الإضافية
+    // البيانات الإضافية (دعم الحقول القديمة)
     status: c.status || "under_review",
     documents: c.documents || [],
     response: c.response || "",
     rejectionReason: c.rejectionReason || "",
+    country: c.country || "",
+    hospital: c.hospital || "",
+    submissionDate: c.submissionDate || "",
+    responseDate: c.responseDate || "",
     
     // الحقول القديمة (للتوافق)
     ...c
@@ -195,7 +207,24 @@ async function createCase(data) {
     const d      = new Date();
     const all    = await getAllCases();
     const num    = `EA-${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, "0")}-${String(all.length + 1).padStart(4, "0")}`;
-    const caseData = { id, caseNumber: num, ...data, createdAt: now, updatedAt: now };
+    const caseData = {
+      id,
+      caseNumber: num,
+      personName:  data.personName  || data.name     || "",
+      personPhone: data.personPhone || data.phone    || "",
+      nationalId:  data.nationalId  || "",
+      serviceType: data.serviceType || data.service  || "",
+      description: data.description || data.desc     || "",
+      country:      data.country      || "",
+      hospital:     data.hospital     || "",
+      submissionDate: data.submissionDate || new Date().toISOString().split('T')[0],
+      status:          data.status          || "under_review",
+      response:        data.response        || "",
+      rejectionReason: data.rejectionReason || "",
+      documents:       data.documents       || [],
+      createdAt: now,
+      updatedAt: now
+    };
     await set(newRef, caseData);
     return caseData;
   });
@@ -228,10 +257,16 @@ async function searchCases(query) {
   const q   = query.toLowerCase();
   return all.filter(c => {
     try {
-      return (c.personName    ? c.personName.toLowerCase().includes(q)    : false) ||
-             (c.caseNumber    ? c.caseNumber.toString().toLowerCase().includes(q) : false) ||
-             (c.nationalId    ? c.nationalId.toString().includes(q)       : false) ||
-             (c.personPhone   ? c.personPhone.toString().includes(q)      : false);
+      const name  = (c.personName || c.name || "").toLowerCase();
+      const phone = (c.personPhone || c.phone || "").toLowerCase();
+      const num   = (c.caseNumber || "").toString().toLowerCase();
+      const natId = (c.nationalId || "").toLowerCase();
+      const country = (c.country || "").toLowerCase();
+      const hospital = (c.hospital || "").toLowerCase();
+      const svc   = (c.serviceType || c.service || "").toLowerCase();
+      return name.includes(q)  || num.includes(q) || natId.includes(q) ||
+             phone.includes(q) || country.includes(q) || hospital.includes(q) ||
+             svc.includes(q);
     } catch (e) {
       console.error("❌ خطأ في البحث:", e.message, c);
       return false;
@@ -266,20 +301,24 @@ async function saveFileToChannel(fileId, fileName, caseNumber = "") {
 function formatCase(c) {
   // ✅ Safe values: إذا كانت undefined، استخدم قيمة افتراضية
   const caseNum = c.caseNumber || `#${c.id?.slice(0, 8) || "N/A"}`;
-  const personName = c.personName || "بدون اسم";
-  const serviceType = c.serviceType || "غير محدد";
+  const personName = c.personName || c.name || "بدون اسم";
+  const serviceType = c.serviceType || c.service || "غير محدد";
   const statusLabel = STATUS_LABELS[c.status] || c.status || "غير محدد";
   
   let text = `<b>📋 طلب ${caseNum}</b>\n\n`;
   text += `👤 <b>الاسم:</b> ${personName}\n`;
-  if (c.personPhone) {
-    const wa = c.personPhone.replace(/^0/, "");
-    text += `📱 <b>الهاتف:</b> <code>${c.personPhone}</code> | <a href="https://wa.me/2${wa}">واتساب</a>\n`;
+  if (c.personPhone || c.phone) {
+    const phone = c.personPhone || c.phone;
+    const wa = phone.replace(/^0/, "");
+    text += `📱 <b>الهاتف:</b> <code>${phone}</code> | <a href="https://wa.me/2${wa}">واتساب</a>\n`;
   }
   if (c.nationalId)  text += `🆔 <b>الرقم القومي:</b> <code>${c.nationalId}</code>\n`;
+  if (c.country)     text += `🏠 <b>القرية/المنطقة:</b> ${c.country}\n`;
+  if (c.hospital)    text += `🏥 <b>المستشفى:</b> ${c.hospital}\n`;
   text += `🏥 <b>الخدمة:</b> ${serviceType}\n`;
   text += `📌 <b>الحالة:</b> ${statusLabel}\n`;
-  if (c.description) text += `📝 <b>الوصف:</b> ${c.description}\n`;
+  if (c.description || c.desc) text += `📝 <b>الوصف:</b> ${c.description || c.desc}\n`;
+  if (c.submissionDate) text += `📅 <b>تاريخ التقديم:</b> ${c.submissionDate}\n`;
   if (c.status === "responded" && c.response)        text += `💬 <b>الرد:</b> ${c.response}\n`;
   if (c.status === "rejected"  && c.rejectionReason) text += `❌ <b>سبب الرفض:</b> ${c.rejectionReason}\n`;
   if (c.documents && c.documents.length > 0)         text += `📎 <b>المستندات:</b> ${c.documents.length} ملف\n`;
@@ -346,12 +385,15 @@ function casesListKeyboard(cases, page = 0) {
   const buttons = slice.map(c => {
     // ✅ Safe display: إذا كانت undefined، استخدم قيمة افتراضية
     const caseNum = c.caseNumber || `#${c.id?.slice(0, 8) || "N/A"}`;
-    const personName = c.personName || "بدون اسم";
+    const personName = c.personName || c.name || "بدون اسم";
     const statusLabel = STATUS_LABELS[c.status]?.replace(/[✅⏳🔄💬❌]/g, "").trim() || c.status || "غير محدد";
+    
+    // ✅ التحقق من أن callback_data لا تتجاوز 64 بايت
+    const callbackId = c.id || "unknown";
     
     return [{
       text: `${caseNum} - ${personName} (${statusLabel})`,
-      callback_data: `view_${c.id}`
+      callback_data: `view_${callbackId}`
     }];
   });
 
@@ -860,7 +902,7 @@ async function showCaseDocuments(chatId, id) {
 
   // ✅ Safe values
   const caseNum = c.caseNumber || `#${c.id?.slice(0, 8) || "N/A"}`;
-  const personName = c.personName || "بدون اسم";
+  const personName = c.personName || c.name || "بدون اسم";
 
   await sendMessage(chatId,
     `📂 <b>مستندات الطلب ${caseNum}</b>\n` +
